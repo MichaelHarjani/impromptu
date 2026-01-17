@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useTheme } from '@/lib/theme-context';
 
 type Level = 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
 
@@ -23,6 +24,7 @@ const levels: { value: Level; label: string }[] = [
 ];
 
 export default function Home() {
+  const { theme, toggleTheme } = useTheme();
   const [selectedLevel, setSelectedLevel] = useState<Level>('L1');
   const [numberInput, setNumberInput] = useState('');
   const [question, setQuestion] = useState<QuestionData | null>(null);
@@ -109,7 +111,20 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className={`min-h-screen flex flex-col ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
+      {/* Dark Mode Toggle - Top Right */}
+      <button
+        onClick={toggleTheme}
+        className={`fixed top-4 right-4 z-50 p-2 rounded-full transition-all ${
+          theme === 'dark'
+            ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400'
+            : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+        }`}
+        title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      >
+        <span className="text-xl">{theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}</span>
+      </button>
+
       {/* Main Content - with padding for fixed bottom controls */}
       <main className="flex-1 flex flex-col items-center pt-8 pb-40 px-4">
         {/* Logo - Large */}
@@ -125,7 +140,7 @@ export default function Home() {
         </div>
 
         {/* Subtitle */}
-        <h1 className="text-lg md:text-xl font-medium text-gray-600 tracking-wide mb-12">
+        <h1 className={`text-lg md:text-xl font-medium tracking-wide mb-12 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
           IMPROMPTU SPEAKING QUESTIONS
         </h1>
 
@@ -133,8 +148,8 @@ export default function Home() {
         <div className="w-full max-w-3xl">
           {question ? (
             <div className="flex">
-              <div className="flex-1 bg-gray-50 border-l-4 border-red-600 p-8 rounded-r-lg">
-                <p className="text-2xl md:text-4xl font-medium text-gray-900 leading-relaxed">
+              <div className={`flex-1 border-l-4 border-red-600 p-8 rounded-r-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
+                <p className={`text-2xl md:text-4xl font-medium leading-relaxed ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
                   {question.text}
                 </p>
               </div>
@@ -145,10 +160,10 @@ export default function Home() {
                   disabled={voted !== null}
                   className={`p-2 rounded-full transition-all ${
                     voted === 'up'
-                      ? 'text-green-600 bg-green-50'
+                      ? 'text-green-500 bg-green-900/30'
                       : voted === 'down'
-                      ? 'text-gray-200'
-                      : 'text-gray-300 hover:text-green-500 hover:bg-green-50'
+                      ? theme === 'dark' ? 'text-gray-600' : 'text-gray-200'
+                      : theme === 'dark' ? 'text-gray-500 hover:text-green-400 hover:bg-green-900/30' : 'text-gray-300 hover:text-green-500 hover:bg-green-50'
                   }`}
                   title="Good question"
                 >
@@ -161,10 +176,10 @@ export default function Home() {
                   disabled={voted !== null}
                   className={`p-2 rounded-full transition-all ${
                     voted === 'down'
-                      ? 'text-red-600 bg-red-50'
+                      ? 'text-red-500 bg-red-900/30'
                       : voted === 'up'
-                      ? 'text-gray-200'
-                      : 'text-gray-300 hover:text-red-500 hover:bg-red-50'
+                      ? theme === 'dark' ? 'text-gray-600' : 'text-gray-200'
+                      : theme === 'dark' ? 'text-gray-500 hover:text-red-400 hover:bg-red-900/30' : 'text-gray-300 hover:text-red-500 hover:bg-red-50'
                   }`}
                   title="Needs review"
                 >
@@ -175,8 +190,8 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <div className="bg-gray-50 border-l-4 border-gray-200 p-8 rounded-r-lg">
-              <p className="text-2xl md:text-4xl text-gray-300 leading-relaxed">
+            <div className={`border-l-4 p-8 rounded-r-lg ${theme === 'dark' ? 'bg-gray-800 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+              <p className={`text-2xl md:text-4xl leading-relaxed ${theme === 'dark' ? 'text-gray-500' : 'text-gray-300'}`}>
                 Your question will appear here...
               </p>
             </div>
@@ -185,11 +200,11 @@ export default function Home() {
       </main>
 
       {/* Fixed Bottom Controls */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-6">
+      <div className={`fixed bottom-0 left-0 right-0 px-4 py-6 border-t ${theme === 'dark' ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}>
         <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-4">
           {/* Level Selector - Subtle */}
           <div className="flex items-center justify-center gap-1">
-            <span className="text-sm text-gray-500 mr-2">Level</span>
+            <span className={`text-sm mr-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Level</span>
             {levels.map((level) => (
               <button
                 key={level.value}
@@ -197,8 +212,8 @@ export default function Home() {
                 onClick={() => setSelectedLevel(level.value)}
                 className={`w-8 h-8 rounded-full text-sm font-medium transition-all ${
                   selectedLevel === level.value
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-400 hover:text-gray-600'
+                    ? theme === 'dark' ? 'bg-gray-100 text-gray-900' : 'bg-gray-900 text-white'
+                    : theme === 'dark' ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
                 {level.label}
@@ -240,7 +255,11 @@ export default function Home() {
               min="0"
               max={maxNumber}
               placeholder={`Lucky number (0-${maxNumber})`}
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 text-center text-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
+              className={`flex-1 px-4 py-3 rounded-lg border text-center text-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none ${
+                theme === 'dark'
+                  ? 'border-gray-700 bg-gray-800 text-gray-100 placeholder-gray-500'
+                  : 'border-gray-300 bg-white text-gray-900'
+              }`}
             />
             <button
               type="submit"
@@ -253,7 +272,7 @@ export default function Home() {
 
           {/* Error Display */}
           {error && (
-            <p className="text-red-600 text-center text-sm">{error}</p>
+            <p className="text-red-500 text-center text-sm">{error}</p>
           )}
         </form>
 
@@ -261,7 +280,7 @@ export default function Home() {
         <div className="text-center mt-4">
           <Link
             href="/admin/login"
-            className="text-xs text-gray-300 hover:text-gray-500 transition-colors"
+            className={`text-xs transition-colors ${theme === 'dark' ? 'text-gray-600 hover:text-gray-400' : 'text-gray-300 hover:text-gray-500'}`}
           >
             Admin
           </Link>
