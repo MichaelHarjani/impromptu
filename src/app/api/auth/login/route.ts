@@ -1,40 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
-import { getUserByUsername, verifyPassword } from '@/lib/db';
 import { SessionData, sessionOptions } from '@/lib/session';
+
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hollybridge';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, password } = body;
+    const { password } = body;
 
-    if (!username || !password) {
+    if (!password) {
       return NextResponse.json(
-        { error: 'Username and password are required' },
+        { error: 'Password is required' },
         { status: 400 }
       );
     }
 
-    const user = getUserByUsername(username);
-
-    if (!user || !verifyPassword(password, user.password_hash)) {
+    if (password !== ADMIN_PASSWORD) {
       return NextResponse.json(
-        { error: 'Invalid username or password' },
+        { error: 'Invalid password' },
         { status: 401 }
       );
     }
 
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    session.userId = user.id;
-    session.username = user.username;
     session.isLoggedIn = true;
     await session.save();
 
-    return NextResponse.json({
-      success: true,
-      user: { id: user.id, username: user.username },
-    });
+    return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
