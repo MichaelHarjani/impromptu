@@ -11,7 +11,14 @@ import {
   recordLoginAttempt,
 } from '@/lib/db';
 import UAParser from 'ua-parser-js';
-import geoip from 'geoip-lite';
+
+// Dynamically import geoip-lite to handle missing data files gracefully
+let geoip: any = null;
+try {
+  geoip = require('geoip-lite');
+} catch (error) {
+  console.warn('geoip-lite not available, location tracking disabled');
+}
 
 function getClientIp(request: NextRequest): string {
   // Check various headers for the real IP (in case of proxies/load balancers)
@@ -25,13 +32,18 @@ function getClientIp(request: NextRequest): string {
     return realIp;
   }
 
-  // Fallback to connection remote address
-  return request.ip || 'unknown';
+  // Fallback - in development this will be unknown
+  return 'unknown';
 }
 
 function getLocationFromIp(ip: string): { city?: string; country?: string; region?: string } | null {
   // Skip geolocation for localhost/private IPs
   if (ip === 'unknown' || ip === '::1' || ip.startsWith('127.') || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+    return null;
+  }
+
+  // Skip if geoip is not available
+  if (!geoip) {
     return null;
   }
 

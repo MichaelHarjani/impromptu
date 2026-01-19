@@ -587,8 +587,8 @@ export function logSiteAccess(
   ipAddress: string,
   success: boolean,
   userAgent?: string,
-  deviceInfo?: string,
-  location?: string
+  deviceInfo?: any,
+  location?: any
 ): void {
   const db = getDb();
   db.prepare(`

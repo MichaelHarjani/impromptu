@@ -13,7 +13,7 @@ export async function GET() {
   try {
     // Check admin authentication
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    if (!session.isAuthenticated) {
+    if (!session.isLoggedIn) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   try {
     // Check admin authentication
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    if (!session.isAuthenticated) {
+    if (!session.isLoggedIn) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     // Check admin authentication
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    if (!session.isAuthenticated) {
+    if (!session.isLoggedIn) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
