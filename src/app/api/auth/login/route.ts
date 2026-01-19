@@ -3,7 +3,7 @@ import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import { SessionData, sessionOptions } from '@/lib/session';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hollybridge';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'animal63';
 
 export async function POST(request: NextRequest) {
   try {
