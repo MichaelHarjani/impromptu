@@ -107,6 +107,7 @@ function initializeDb(database: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       number INTEGER NOT NULL,
       level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5')),
+      ip_address TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -560,9 +561,9 @@ export function cleanupOldHistory(olderThanMinutes: number = 1440): void {
 }
 
 // Number input operations
-export function recordNumberInput(number: number, level: Level): void {
+export function recordNumberInput(number: number, level: Level, ipAddress?: string): void {
   const db = getDb();
-  db.prepare('INSERT INTO number_inputs (number, level) VALUES (?, ?)').run(number, level);
+  db.prepare('INSERT INTO number_inputs (number, level, ip_address) VALUES (?, ?, ?)').run(number, level, ipAddress || null);
 }
 
 export interface NumberInput {
@@ -775,4 +776,52 @@ export function recordLoginAttempt(ip: string, success: boolean): void {
 
 export function clearRateLimit(ip: string): void {
   loginAttempts.delete(ip);
+}
+
+// Lucky number statistics
+interface DigitStats {
+  digit: number;
+  count: number;
+}
+
+interface LuckyNumberStats {
+  topDigits: DigitStats[];
+  totalCount: number;
+  allNumbers: Array<{ id: number; number: number; level: string; ip_address: string | null; created_at: string }>;
+}
+
+export function getLuckyNumberStats(): LuckyNumberStats {
+  const db = getDb();
+
+  // Get all numbers for CSV export
+  const allNumbers = db.prepare(`
+    SELECT id, number, level, ip_address, created_at
+    FROM number_inputs
+    ORDER BY created_at DESC
+  `).all() as Array<{ id: number; number: number; level: string; ip_address: string | null; created_at: string }>;
+
+  // Count total entries
+  const totalCount = allNumbers.length;
+
+  // Extract all digits from all numbers and count them
+  const digitCounts = new Map<number, number>();
+
+  allNumbers.forEach(entry => {
+    const digits = String(entry.number).split('').map(d => parseInt(d, 10));
+    digits.forEach(digit => {
+      digitCounts.set(digit, (digitCounts.get(digit) || 0) + 1);
+    });
+  });
+
+  // Convert to array and sort by count
+  const topDigits = Array.from(digitCounts.entries())
+    .map(([digit, count]) => ({ digit, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10); // Top 10 digits
+
+  return {
+    topDigits,
+    totalCount,
+    allNumbers,
+  };
 }

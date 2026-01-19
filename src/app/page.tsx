@@ -138,7 +138,7 @@ export default function Home() {
       {/* Main Content - with padding for fixed bottom controls */}
       <main className="flex-1 flex flex-col items-center pt-8 pb-40 px-4">
         {/* Logo - Large with white background in dark mode */}
-        <div className={`mb-4 rounded-lg ${theme === 'dark' ? 'bg-white p-4' : ''}`}>
+        <div className={`mb-4 rounded-lg ${theme === 'dark' ? 'bg-white p-[15px]' : ''}`}>
           <Image
             src="/logo.webp"
             alt="Leaders of Tomorrow"

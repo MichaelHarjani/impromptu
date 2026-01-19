@@ -37,7 +37,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [filterLevel, setFilterLevel] = useState<Level | 'all'>('all');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'questions' | 'templates' | 'feedback' | 'settings' | 'logs'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'templates' | 'feedback' | 'settings' | 'logs' | 'lucky-numbers'>('questions');
 
   // Settings
   const [lockDuration, setLockDuration] = useState(30);
@@ -56,6 +56,10 @@ export default function AdminDashboard() {
   const [logsTotal, setLogsTotal] = useState(0);
   const [logsSuccessFilter, setLogsSuccessFilter] = useState<string>('all');
   const [logsIpFilter, setLogsIpFilter] = useState('');
+
+  // Lucky numbers state
+  const [luckyStats, setLuckyStats] = useState<{ topDigits: { digit: number; count: number }[]; totalCount: number } | null>(null);
+  const [luckyLoading, setLuckyLoading] = useState(false);
 
   // New question form
   const [newLevel, setNewLevel] = useState<Level>('L1');
@@ -186,6 +190,21 @@ export default function AdminDashboard() {
     }
   }, [logsPage, logsSuccessFilter, logsIpFilter]);
 
+  const fetchLuckyNumbers = useCallback(async () => {
+    setLuckyLoading(true);
+    try {
+      const response = await fetch('/api/stats/lucky-numbers');
+      if (response.ok) {
+        const data = await response.json();
+        setLuckyStats(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch lucky numbers:', error);
+    } finally {
+      setLuckyLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     checkSession();
   }, [checkSession]);
@@ -203,6 +222,12 @@ export default function AdminDashboard() {
       fetchLogs();
     }
   }, [isLoggedIn, activeTab, fetchLogs]);
+
+  useEffect(() => {
+    if (isLoggedIn && activeTab === 'lucky-numbers') {
+      fetchLuckyNumbers();
+    }
+  }, [isLoggedIn, activeTab, fetchLuckyNumbers]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -685,6 +710,16 @@ export default function AdminDashboard() {
             }`}
           >
             Access Logs
+          </button>
+          <button
+            onClick={() => setActiveTab('lucky-numbers')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'lucky-numbers'
+                ? 'border-red-600 text-red-600'
+                : theme === 'dark' ? 'border-transparent text-gray-400 hover:text-gray-200' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Lucky Numbers
           </button>
           <button
             onClick={() => setActiveTab('settings')}
@@ -1394,6 +1429,87 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </>
+            )}
+          </div>
+        )}
+
+        {/* Lucky Numbers Tab */}
+        {activeTab === 'lucky-numbers' && (
+          <div className={`rounded-xl shadow-sm border p-6 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className={`text-lg font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                Lucky Numbers Analytics
+              </h2>
+              <a
+                href="/api/stats/lucky-numbers/export"
+                className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+                  theme === 'dark'
+                    ? 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-gray-200'
+                    : 'border-gray-300 bg-white hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                Download CSV
+              </a>
+            </div>
+
+            {luckyLoading ? (
+              <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Loading statistics...</p>
+            ) : luckyStats ? (
+              <div className="space-y-6">
+                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                    Total lucky numbers entered: <span className="font-semibold">{luckyStats.totalCount}</span>
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className={`text-md font-semibold mb-4 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+                    Top 10 Most Common Digits
+                  </h3>
+                  <div className="space-y-3">
+                    {luckyStats.topDigits.map((stat, index) => {
+                      const maxCount = luckyStats.topDigits[0]?.count || 1;
+                      const percentage = (stat.count / maxCount) * 100;
+                      return (
+                        <div key={stat.digit} className="flex items-center gap-4">
+                          <div className="w-12 text-center">
+                            <span className={`text-2xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                              {stat.digit}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <div className={`flex-1 h-8 rounded-lg overflow-hidden ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'}`}>
+                                <div
+                                  className={`h-full transition-all ${
+                                    index === 0
+                                      ? 'bg-red-600'
+                                      : index === 1
+                                      ? 'bg-orange-500'
+                                      : index === 2
+                                      ? 'bg-yellow-500'
+                                      : theme === 'dark'
+                                      ? 'bg-blue-500'
+                                      : 'bg-blue-400'
+                                  }`}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                              <div className="w-16 text-right">
+                                <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                                  {stat.count}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>No data available</p>
             )}
           </div>
         )}
