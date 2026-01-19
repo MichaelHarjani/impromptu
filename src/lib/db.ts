@@ -2,17 +2,23 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import bcrypt from 'bcryptjs';
 
-const dbPath = path.join(process.cwd(), 'data', 'impromptu.db');
+// Use /tmp for Vercel (serverless environment), data/ for local development
+const isVercel = process.env.VERCEL === '1';
+const dbPath = isVercel
+  ? '/tmp/impromptu.db'
+  : path.join(process.cwd(), 'data', 'impromptu.db');
 
 let db: Database.Database | null = null;
 
 export function getDb(): Database.Database {
   if (!db) {
-    // Ensure data directory exists
-    const fs = require('fs');
-    const dataDir = path.join(process.cwd(), 'data');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+    // Ensure data directory exists (only for local development)
+    if (!isVercel) {
+      const fs = require('fs');
+      const dataDir = path.join(process.cwd(), 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
     }
 
     db = new Database(dbPath);
