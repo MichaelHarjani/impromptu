@@ -125,10 +125,20 @@ export default function Home() {
         <span className="text-xl">{theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}</span>
       </button>
 
+      {/* Admin Link - Top Left */}
+      <div className="fixed top-4 left-4 z-50">
+        <Link
+          href="/admin/login"
+          className={`text-xs transition-colors ${theme === 'dark' ? 'text-gray-600 hover:text-gray-400' : 'text-gray-300 hover:text-gray-500'}`}
+        >
+          Admin
+        </Link>
+      </div>
+
       {/* Main Content - with padding for fixed bottom controls */}
       <main className="flex-1 flex flex-col items-center pt-8 pb-40 px-4">
-        {/* Logo - Large */}
-        <div className="mb-4">
+        {/* Logo - Large with white background in dark mode */}
+        <div className={`mb-4 rounded-lg ${theme === 'dark' ? 'bg-white p-4' : ''}`}>
           <Image
             src="/logo.webp"
             alt="Leaders of Tomorrow"
@@ -140,8 +150,8 @@ export default function Home() {
         </div>
 
         {/* Subtitle */}
-        <h1 className={`text-lg md:text-xl font-medium tracking-wide mb-12 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-          IMPROMPTU SPEAKING QUESTIONS
+        <h1 className={`text-lg md:text-xl font-medium tracking-wide mb-16 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+          IMPROMPTU QUESTION GENERATOR
         </h1>
 
         {/* Question Display */}
@@ -183,8 +193,8 @@ export default function Home() {
                   }`}
                   title="Needs review"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                    <path d="M19 11.75a1.25 1.25 0 1 0-2.5 0v7.5a1.25 1.25 0 1 0 2.5 0v-7.5ZM9 17v1.3c0 .268-.14.526-.395.607A2 2 0 0 1 6 17c0-.995.182-1.948.514-2.826.204-.54-.166-1.174-.744-1.174h-2.52c-1.243 0-2.261-1.01-2.146-2.247.193-2.08.651-4.082 1.341-5.974C2.847 3.677 3.928 3 5.1 3h3.192a3 3 0 0 1 1.341.317l2.734 1.366A3 3 0 0 0 13.708 5H15v7h-1.292a3 3 0 0 0-2.433.703l-1.618 1.018A5.978 5.978 0 0 0 9 17Z" />
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 rotate-180">
+                    <path d="M1 8.25a1.25 1.25 0 1 1 2.5 0v7.5a1.25 1.25 0 1 1-2.5 0v-7.5ZM11 3V1.7c0-.268.14-.526.395-.607A2 2 0 0 1 14 3c0 .995-.182 1.948-.514 2.826-.204.54.166 1.174.744 1.174h2.52c1.243 0 2.261 1.01 2.146 2.247a23.864 23.864 0 0 1-1.341 5.974C17.153 16.323 16.072 17 14.9 17h-3.192a3 3 0 0 1-1.341-.317l-2.734-1.366A3 3 0 0 0 6.292 15H5V8h1.292c.86 0 1.705-.245 2.433-.703l1.618-1.018A5.978 5.978 0 0 0 11 3Z" />
                   </svg>
                 </button>
               </div>
@@ -225,6 +235,8 @@ export default function Home() {
           <div className="flex gap-3">
             <input
               type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={numberInput}
               onChange={(e) => {
                 const value = e.target.value;
@@ -275,16 +287,6 @@ export default function Home() {
             <p className="text-red-500 text-center text-sm">{error}</p>
           )}
         </form>
-
-        {/* Admin Link */}
-        <div className="text-center mt-4">
-          <Link
-            href="/admin/login"
-            className={`text-xs transition-colors ${theme === 'dark' ? 'text-gray-600 hover:text-gray-400' : 'text-gray-300 hover:text-gray-500'}`}
-          >
-            Admin
-          </Link>
-        </div>
       </div>
     </div>
   );
