@@ -64,7 +64,7 @@ export default function Home() {
     setVoted(null);
 
     try {
-      const response = await fetch(`/api/questions/random?level=${selectedLevel}`);
+      const response = await fetch(`/api/questions/random?level=${selectedLevel}&number=${num}`);
       const data = await response.json();
 
       if (!response.ok) {

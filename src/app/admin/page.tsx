@@ -37,13 +37,25 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [filterLevel, setFilterLevel] = useState<Level | 'all'>('all');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'questions' | 'templates' | 'feedback' | 'settings'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'templates' | 'feedback' | 'settings' | 'logs'>('questions');
 
   // Settings
   const [lockDuration, setLockDuration] = useState(30);
   const [maxNumber, setMaxNumber] = useState(1000);
   const [savingSettings, setSavingSettings] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [sitePassword, setSitePassword] = useState('');
+  const [ipWhitelist, setIpWhitelist] = useState<string[]>([]);
+  const [ipWhitelistEnabled, setIpWhitelistEnabled] = useState(false);
+  const [newIpAddress, setNewIpAddress] = useState('');
+
+  // Logs state
+  const [logs, setLogs] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsPage, setLogsPage] = useState(1);
+  const [logsTotal, setLogsTotal] = useState(0);
+  const [logsSuccessFilter, setLogsSuccessFilter] = useState<string>('all');
+  const [logsIpFilter, setLogsIpFilter] = useState('');
 
   // New question form
   const [newLevel, setNewLevel] = useState<Level>('L1');
@@ -139,11 +151,40 @@ export default function AdminDashboard() {
         const data = await response.json();
         setLockDuration(data.lock_duration_minutes);
         setMaxNumber(data.max_number || 1000);
+        setIpWhitelist(data.ip_whitelist || []);
+        setIpWhitelistEnabled(data.ip_whitelist_enabled || false);
       }
     } catch (error) {
       console.error('Failed to fetch settings:', error);
     }
   }, []);
+
+  const fetchLogs = useCallback(async () => {
+    setLogsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(logsPage),
+        limit: '50',
+      });
+      if (logsSuccessFilter !== 'all') {
+        params.append('success', logsSuccessFilter);
+      }
+      if (logsIpFilter) {
+        params.append('ip', logsIpFilter);
+      }
+
+      const response = await fetch(`/api/logs?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setLogs(data.logs || []);
+        setLogsTotal(data.total || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch logs:', error);
+    } finally {
+      setLogsLoading(false);
+    }
+  }, [logsPage, logsSuccessFilter, logsIpFilter]);
 
   useEffect(() => {
     checkSession();
@@ -157,6 +198,12 @@ export default function AdminDashboard() {
     }
   }, [isLoggedIn, fetchQuestions, fetchTemplates, fetchSettings]);
 
+  useEffect(() => {
+    if (isLoggedIn && activeTab === 'logs') {
+      fetchLogs();
+    }
+  }, [isLoggedIn, activeTab, fetchLogs]);
+
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/admin/login');
@@ -165,19 +212,43 @@ export default function AdminDashboard() {
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
+      const body: any = {
+        lock_duration_minutes: lockDuration,
+        max_number: maxNumber,
+        ip_whitelist: ipWhitelist,
+        ip_whitelist_enabled: ipWhitelistEnabled,
+      };
+      if (sitePassword) {
+        body.site_password = sitePassword;
+      }
+
       await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lock_duration_minutes: lockDuration,
-          max_number: maxNumber,
-        }),
+        body: JSON.stringify(body),
       });
+
+      if (sitePassword) {
+        setSitePassword('');
+        alert('Settings saved successfully!');
+      }
     } catch (error) {
       console.error('Failed to save settings:', error);
+      alert('Failed to save settings. Please try again.');
     } finally {
       setSavingSettings(false);
     }
+  };
+
+  const handleAddIpToWhitelist = () => {
+    if (newIpAddress.trim() && !ipWhitelist.includes(newIpAddress.trim())) {
+      setIpWhitelist([...ipWhitelist, newIpAddress.trim()]);
+      setNewIpAddress('');
+    }
+  };
+
+  const handleRemoveIpFromWhitelist = (ip: string) => {
+    setIpWhitelist(ipWhitelist.filter(i => i !== ip));
   };
 
   const handleResetPool = async () => {
@@ -604,6 +675,16 @@ export default function AdminDashboard() {
                 {feedbackQuestions.length}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setActiveTab('logs')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'logs'
+                ? 'border-red-600 text-red-600'
+                : theme === 'dark' ? 'border-transparent text-gray-400 hover:text-gray-200' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Access Logs
           </button>
           <button
             onClick={() => setActiveTab('settings')}
@@ -1201,6 +1282,122 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* Access Logs Tab */}
+        {activeTab === 'logs' && (
+          <div className={`rounded-xl shadow-sm border overflow-hidden ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className={`p-4 border-b ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+              <div className="flex flex-wrap gap-4 items-center">
+                <div className="flex items-center gap-2">
+                  <label className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Status:</label>
+                  <select
+                    value={logsSuccessFilter}
+                    onChange={(e) => {
+                      setLogsSuccessFilter(e.target.value);
+                      setLogsPage(1);
+                    }}
+                    className={`px-3 py-1 rounded-lg border text-sm ${theme === 'dark' ? 'border-gray-600 bg-gray-700 text-gray-100' : 'border-gray-300 bg-white text-gray-900'}`}
+                  >
+                    <option value="all">All</option>
+                    <option value="true">Success</option>
+                    <option value="false">Failed</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>IP:</label>
+                  <input
+                    type="text"
+                    value={logsIpFilter}
+                    onChange={(e) => {
+                      setLogsIpFilter(e.target.value);
+                      setLogsPage(1);
+                    }}
+                    placeholder="Filter by IP"
+                    className={`px-3 py-1 rounded-lg border text-sm ${theme === 'dark' ? 'border-gray-600 bg-gray-700 text-gray-100' : 'border-gray-300 bg-white text-gray-900'}`}
+                  />
+                </div>
+                <button
+                  onClick={fetchLogs}
+                  className={`px-4 py-1 rounded-lg text-sm font-medium ${theme === 'dark' ? 'bg-gray-600 hover:bg-gray-500 text-gray-200' : 'bg-gray-900 hover:bg-gray-800 text-white'}`}
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
+
+            {logsLoading ? (
+              <div className={`p-8 text-center ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Loading logs...</div>
+            ) : logs.length === 0 ? (
+              <div className={`p-8 text-center ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>No logs found.</div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                      <tr>
+                        <th className={`px-4 py-3 text-left text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>Timestamp</th>
+                        <th className={`px-4 py-3 text-left text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>IP Address</th>
+                        <th className={`px-4 py-3 text-left text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>Location</th>
+                        <th className={`px-4 py-3 text-left text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>Device</th>
+                        <th className={`px-4 py-3 text-left text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y ${theme === 'dark' ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                      {logs.map((log: any) => {
+                        const deviceInfo = log.device_info ? JSON.parse(log.device_info) : null;
+                        const location = log.location ? JSON.parse(log.location) : null;
+                        return (
+                          <tr key={log.id} className={theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}>
+                            <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>
+                              {new Date(log.created_at).toLocaleString()}
+                            </td>
+                            <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>
+                              {log.ip_address}
+                            </td>
+                            <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>
+                              {location ? `${location.city || ''}${location.city && location.country ? ', ' : ''}${location.country || ''}`.trim() || 'N/A' : 'N/A'}
+                            </td>
+                            <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>
+                              {deviceInfo ? `${deviceInfo.browser?.name || ''}${deviceInfo.browser?.version ? ' ' + deviceInfo.browser.version : ''}${deviceInfo.os?.name ? ' / ' + deviceInfo.os.name : ''}`.trim() || 'N/A' : 'N/A'}
+                            </td>
+                            <td className={`px-4 py-3 text-sm`}>
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${log.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                {log.success ? 'Success' : 'Failed'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {logsTotal > 50 && (
+                  <div className={`p-4 border-t flex justify-between items-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Showing {((logsPage - 1) * 50) + 1}-{Math.min(logsPage * 50, logsTotal)} of {logsTotal} logs
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setLogsPage(p => Math.max(1, p - 1))}
+                        disabled={logsPage === 1}
+                        className={`px-3 py-1 rounded-lg text-sm ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50' : 'bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:opacity-50'}`}
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => setLogsPage(p => p + 1)}
+                        disabled={logsPage * 50 >= logsTotal}
+                        className={`px-3 py-1 rounded-lg text-sm ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50' : 'bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:opacity-50'}`}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className={`rounded-xl shadow-sm border p-6 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -1251,6 +1448,92 @@ export default function AdminDashboard() {
                 <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
                   Default: 1000. Range: 1 to 10000.
                 </p>
+              </div>
+
+              {/* Site Security Section */}
+              <div className={`mt-8 pt-6 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                <h3 className={`text-md font-semibold mb-4 ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>Site Security</h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Site Password
+                    </label>
+                    <p className={`text-sm mb-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Change the password required to access the site. Leave empty to keep current password.
+                    </p>
+                    <input
+                      type="password"
+                      value={sitePassword}
+                      onChange={(e) => setSitePassword(e.target.value)}
+                      placeholder="Enter new password (leave empty to keep current)"
+                      className={`w-full px-4 py-2 rounded-lg border ${theme === 'dark' ? 'border-gray-600 bg-gray-700 text-gray-100 placeholder-gray-500' : 'border-gray-300 bg-white text-gray-900'}`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                      IP Whitelist
+                    </label>
+                    <p className={`text-sm mb-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Optionally restrict access to specific IP addresses. Password authentication will still work from any IP.
+                    </p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <input
+                        type="checkbox"
+                        checked={ipWhitelistEnabled}
+                        onChange={(e) => setIpWhitelistEnabled(e.target.checked)}
+                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                      />
+                      <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Enable IP whitelist</span>
+                    </div>
+                    {ipWhitelistEnabled && (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={newIpAddress}
+                            onChange={(e) => setNewIpAddress(e.target.value)}
+                            placeholder="Enter IP address"
+                            className={`flex-1 px-4 py-2 rounded-lg border ${theme === 'dark' ? 'border-gray-600 bg-gray-700 text-gray-100 placeholder-gray-500' : 'border-gray-300 bg-white text-gray-900'}`}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddIpToWhitelist();
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={handleAddIpToWhitelist}
+                            className={`px-4 py-2 rounded-lg font-medium ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                          >
+                            Add IP
+                          </button>
+                        </div>
+                        {ipWhitelist.length > 0 && (
+                          <div className={`rounded-lg border p-3 ${theme === 'dark' ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'}`}>
+                            <div className="flex flex-wrap gap-2">
+                              {ipWhitelist.map((ip) => (
+                                <span
+                                  key={ip}
+                                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-sm ${theme === 'dark' ? 'bg-gray-600 text-gray-200' : 'bg-white text-gray-700 border border-gray-300'}`}
+                                >
+                                  {ip}
+                                  <button
+                                    onClick={() => handleRemoveIpFromWhitelist(ip)}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <button

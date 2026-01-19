@@ -4,6 +4,7 @@ export interface SessionData {
   userId?: number;
   username?: string;
   isLoggedIn: boolean;
+  siteAccessGranted: boolean;
 }
 
 export const sessionOptions: SessionOptions = {
@@ -18,4 +19,5 @@ export const sessionOptions: SessionOptions = {
 
 export const defaultSession: SessionData = {
   isLoggedIn: false,
+  siteAccessGranted: false,
 };
