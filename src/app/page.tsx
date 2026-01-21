@@ -138,7 +138,7 @@ export default function Home() {
       {/* Main Content - with padding for fixed bottom controls */}
       <main className="flex-1 flex flex-col items-center pt-8 pb-40 px-4">
         {/* Logo - Large with white background in dark mode */}
-        <div className={`mb-4 rounded-lg ${theme === 'dark' ? 'bg-white p-[15px]' : ''}`}>
+        <div className={`mb-4 rounded-lg ${theme === 'dark' ? 'bg-white px-[15px] py-2' : ''}`}>
           <Image
             src="/logo.webp"
             alt="Leaders of Tomorrow"
@@ -211,7 +211,7 @@ export default function Home() {
 
       {/* Fixed Bottom Controls */}
       <div className={`fixed bottom-0 left-0 right-0 px-4 py-6 border-t ${theme === 'dark' ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}>
-        <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-4">
+        <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-4">
           {/* Level Selector - Subtle */}
           <div className="flex items-center justify-center gap-1">
             <span className={`text-sm mr-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Level</span>
@@ -267,7 +267,7 @@ export default function Home() {
               min="0"
               max={maxNumber}
               placeholder={`Lucky number (0-${maxNumber})`}
-              className={`flex-1 px-4 py-3 rounded-lg border text-center text-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none ${
+              className={`flex-1 px-6 py-5 rounded-lg border text-center text-2xl font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none ${
                 theme === 'dark'
                   ? 'border-gray-700 bg-gray-800 text-gray-100 placeholder-gray-500'
                   : 'border-gray-300 bg-white text-gray-900'
@@ -276,7 +276,7 @@ export default function Home() {
             <button
               type="submit"
               disabled={loading}
-              className="px-8 py-3 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-semibold text-lg transition-colors"
+              className="px-12 py-5 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-semibold text-2xl transition-colors"
             >
               {loading ? '...' : 'Go'}
             </button>
