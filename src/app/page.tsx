@@ -140,7 +140,7 @@ export default function Home() {
         {/* Logo - Large with white background in dark mode */}
         <div className={`mb-4 rounded-lg ${theme === 'dark' ? 'bg-white px-[15px] py-2' : ''}`}>
           <Image
-            src="/logo.png"
+            src="/logo-transparent.png"
             alt="Leaders of Tomorrow"
             width={500}
             height={200}
