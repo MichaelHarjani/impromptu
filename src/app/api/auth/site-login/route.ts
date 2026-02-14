@@ -166,9 +166,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Site login error:', error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error('Site login error:', errMsg, error);
     return NextResponse.json(
-      { error: 'Invalid request' },
+      { error: 'Invalid request: ' + errMsg },
       { status: 400 }
     );
   }
