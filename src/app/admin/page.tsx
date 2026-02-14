@@ -46,19 +46,19 @@ export default function AdminDashboard() {
       const response = await fetch('/api/auth/session');
       const data = await response.json();
       if (!data.isLoggedIn) {
-        router.push('/admin/login');
+        router.push('/access');
       } else {
         setIsLoggedIn(true);
       }
     } catch {
-      router.push('/admin/login');
+      router.push('/access');
     }
   }, [router]);
 
   const fetchQuestions = useCallback(async () => {
     try {
       const response = await fetch('/api/questions');
-      if (response.status === 401) { router.push('/admin/login'); return; }
+      if (response.status === 401) { router.push('/access'); return; }
       const data = await response.json();
       setQuestions(data);
     } catch (error) {
@@ -71,7 +71,7 @@ export default function AdminDashboard() {
   const fetchTemplates = useCallback(async () => {
     try {
       const response = await fetch('/api/templates');
-      if (response.status === 401) { router.push('/admin/login'); return; }
+      if (response.status === 401) { router.push('/access'); return; }
       const data = await response.json();
       setTemplates(data);
     } catch (error) {
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/admin/login');
+    router.push('/access');
   };
 
   const handleEditFromFeedback = () => {

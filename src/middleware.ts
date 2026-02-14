@@ -11,8 +11,6 @@ export async function middleware(request: NextRequest) {
     '/access',
     '/api/auth/site-login',
     '/api/auth/session',
-    '/admin/login',
-    '/api/auth/login',
   ];
 
   // Check if the path is public

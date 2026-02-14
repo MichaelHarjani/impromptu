@@ -159,6 +159,9 @@ export async function POST(request: NextRequest) {
     session.siteAccessGranted = true;
     session.emailUserId = emailUser.id;
     session.email = emailUser.email;
+    if (emailUser.is_admin) {
+      session.isLoggedIn = true;
+    }
     await session.save();
 
     return NextResponse.json({ success: true });

@@ -46,6 +46,11 @@ export function revokeEmailUser(id: number): void {
   db.prepare('UPDATE email_users SET approved = 0 WHERE id = ?').run(id);
 }
 
+export function setEmailUserAdmin(id: number, isAdmin: boolean): void {
+  const db = getDb();
+  db.prepare('UPDATE email_users SET is_admin = ? WHERE id = ?').run(isAdmin ? 1 : 0, id);
+}
+
 export function deleteEmailUser(id: number): boolean {
   const db = getDb();
   const result = db.prepare('DELETE FROM email_users WHERE id = ?').run(id);

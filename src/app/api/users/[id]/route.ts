@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import { SessionData, sessionOptions } from '@/lib/session';
-import { getEmailUserById, approveEmailUser, revokeEmailUser, deleteEmailUser, getUserActivity } from '@/lib/db';
+import { getEmailUserById, approveEmailUser, revokeEmailUser, setEmailUserAdmin, deleteEmailUser, getUserActivity } from '@/lib/db';
 
 async function getSession() {
   return getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -45,16 +45,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   try {
     const body = await request.json();
-    const { approved } = body;
+    const { approved, is_admin } = body;
 
-    if (typeof approved !== 'boolean') {
-      return NextResponse.json({ error: 'approved must be a boolean' }, { status: 400 });
+    if (typeof approved === 'boolean') {
+      if (approved) {
+        approveEmailUser(userId);
+      } else {
+        revokeEmailUser(userId);
+      }
     }
 
-    if (approved) {
-      approveEmailUser(userId);
-    } else {
-      revokeEmailUser(userId);
+    if (typeof is_admin === 'boolean') {
+      setEmailUserAdmin(userId, is_admin);
     }
 
     return NextResponse.json({ success: true });

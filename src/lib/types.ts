@@ -57,6 +57,7 @@ export interface EmailUser {
   id: number;
   email: string;
   approved: number; // 0 or 1
+  is_admin: number; // 0 or 1
   created_at: string;
 }
 

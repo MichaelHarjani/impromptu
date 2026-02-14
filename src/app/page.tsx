@@ -152,7 +152,7 @@ export default function Home() {
       {/* Admin Link - Top Left */}
       <div className="fixed top-4 left-4 z-50">
         <Link
-          href="/admin/login"
+          href="/admin"
           className="text-xs transition-colors text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400"
         >
           Admin

@@ -6,6 +6,7 @@ interface EmailUserWithStats {
   id: number;
   email: string;
   approved: number;
+  is_admin: number;
   created_at: string;
   activity_count: number;
   last_active: string | null;
@@ -93,6 +94,22 @@ export default function UsersTab({ isActive }: UsersTabProps) {
     }
   };
 
+  const handleToggleAdmin = async (user: EmailUserWithStats) => {
+    setToggling(user.id);
+    try {
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_admin: !user.is_admin }),
+      });
+      if (response.ok) fetchUsers();
+    } catch (error) {
+      console.error('Failed to toggle admin:', error);
+    } finally {
+      setToggling(null);
+    }
+  };
+
   const handleDelete = async (userId: number) => {
     if (!confirm('Delete this user and all their activity? This cannot be undone.')) return;
     try {
@@ -152,7 +169,14 @@ export default function UsersTab({ isActive }: UsersTabProps) {
                       <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 0 1 .02-1.06L11.168 10 7.23 6.29a.75.75 0 1 1 1.04-1.08l4.5 4.25a.75.75 0 0 1 0 1.08l-4.5 4.25a.75.75 0 0 1-1.06-.02Z" clipRule="evenodd" />
                     </svg>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{user.email}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{user.email}</p>
+                        {user.is_admin === 1 && (
+                          <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                            Admin
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         {user.activity_count} question{user.activity_count !== 1 ? 's' : ''} viewed
                         {user.last_active && ` · Last active ${new Date(user.last_active).toLocaleDateString()}`}
@@ -161,6 +185,17 @@ export default function UsersTab({ isActive }: UsersTabProps) {
                   </button>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handleToggleAdmin(user)}
+                      disabled={toggling === user.id}
+                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                        user.is_admin
+                          ? 'bg-purple-100 text-purple-800 hover:bg-purple-200'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {toggling === user.id ? '...' : user.is_admin ? 'Admin' : 'User'}
+                    </button>
                     <button
                       onClick={() => handleToggleApproval(user)}
                       disabled={toggling === user.id}
