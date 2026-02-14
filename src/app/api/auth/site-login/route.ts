@@ -9,6 +9,7 @@ import {
   logSiteAccess,
   checkRateLimit,
   recordLoginAttempt,
+  findOrCreateEmailUser,
 } from '@/lib/db';
 import UAParser from 'ua-parser-js';
 
@@ -66,11 +67,18 @@ function getLocationFromIp(ip: string): { city?: string; country?: string; regio
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { password } = body;
+    const { password, email } = body;
 
     if (!password) {
       return NextResponse.json(
         { error: 'Password is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return NextResponse.json(
+        { error: 'A valid email address is required' },
         { status: 400 }
       );
     }
@@ -137,9 +145,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check email user approval
+    const emailUser = findOrCreateEmailUser(email.trim().toLowerCase());
+    if (!emailUser.approved) {
+      return NextResponse.json(
+        { error: 'Your email is pending approval. Please contact your instructor.' },
+        { status: 403 }
+      );
+    }
+
     // Create session
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
     session.siteAccessGranted = true;
+    session.emailUserId = emailUser.id;
+    session.email = emailUser.email;
     await session.save();
 
     return NextResponse.json({ success: true });

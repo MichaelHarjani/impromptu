@@ -6,6 +6,7 @@ import Image from 'next/image';
 
 export default function AccessPage() {
   const router = useRouter();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -19,13 +20,13 @@ export default function AccessPage() {
       const response = await fetch('/api/auth/site-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Invalid password');
+        setError(data.error || 'Access denied');
         return;
       }
 
@@ -51,10 +52,21 @@ export default function AccessPage() {
             priority
           />
           <h1 className="text-xl font-semibold text-gray-900">Site Access</h1>
-          <p className="text-sm text-gray-600 mt-2">Enter password to continue</p>
+          <p className="text-sm text-gray-600 mt-2">Enter your email and password to continue</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email address"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
+              required
+              autoFocus
+            />
+          </div>
           <div>
             <input
               type="password"
@@ -63,7 +75,6 @@ export default function AccessPage() {
               placeholder="Password"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
               required
-              autoFocus
             />
           </div>
 
