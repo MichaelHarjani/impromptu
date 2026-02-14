@@ -3,20 +3,17 @@ import fs from 'fs';
 import path from 'path';
 import { initializeDb } from './schema';
 
-const isVercel = process.env.VERCEL === '1';
-const dbPath = isVercel
-  ? '/tmp/impromptu.db'
-  : path.join(process.cwd(), 'data', 'impromptu.db');
+// Railway volume mount or local data directory
+const dataDir = process.env.RAILWAY_VOLUME_MOUNT_PATH
+  || path.join(process.cwd(), 'data');
+const dbPath = path.join(dataDir, 'impromptu.db');
 
 let db: Database.Database | null = null;
 
 export function getDb(): Database.Database {
   if (!db) {
-    if (!isVercel) {
-      const dataDir = path.join(process.cwd(), 'data');
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
     }
 
     db = new Database(dbPath);
