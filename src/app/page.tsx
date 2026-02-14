@@ -133,17 +133,11 @@ export default function Home() {
     fetchQuestion();
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = (seconds % 60).toString().padStart(2, '0');
-    return `${mins}:${secs}`;
-  };
-
   const questionBgClass = timerRunning || timerFinished
     ? elapsedSeconds >= 90
       ? 'bg-red-100 dark:bg-red-900/30'
       : elapsedSeconds >= 60
-        ? 'bg-yellow-100 dark:bg-yellow-900/30'
+        ? 'bg-yellow-300 dark:bg-yellow-500/40'
         : 'bg-gray-50 dark:bg-gray-800'
     : 'bg-gray-50 dark:bg-gray-800';
 
@@ -236,22 +230,12 @@ export default function Home() {
                   </button>
                 )}
                 {timerRunning && (
-                  <>
-                    <span className="text-2xl font-mono font-medium text-gray-900 dark:text-gray-100">
-                      {formatTime(elapsedSeconds)}
-                    </span>
-                    <button
-                      onClick={endTimer}
-                      className="px-6 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
-                    >
-                      End
-                    </button>
-                  </>
-                )}
-                {timerFinished && (
-                  <span className="text-2xl font-mono font-medium text-gray-900 dark:text-gray-100">
-                    Time: {formatTime(elapsedSeconds)}
-                  </span>
+                  <button
+                    onClick={endTimer}
+                    className="px-6 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+                  >
+                    End
+                  </button>
                 )}
               </div>
             </div>

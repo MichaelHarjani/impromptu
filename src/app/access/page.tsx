@@ -9,11 +9,13 @@ export default function AccessPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setPendingMessage(null);
     setLoading(true);
 
     try {
@@ -24,6 +26,11 @@ export default function AccessPage() {
       });
 
       const data = await response.json();
+
+      if (response.status === 403) {
+        setPendingMessage('Your email has been submitted for approval. Please check back later.');
+        return;
+      }
 
       if (!response.ok) {
         setError(data.error || 'Access denied');
@@ -82,9 +89,15 @@ export default function AccessPage() {
             <p className="text-red-600 text-sm text-center">{error}</p>
           )}
 
+          {pendingMessage && (
+            <div className="rounded-lg bg-green-50 border border-green-200 p-3">
+              <p className="text-green-800 text-sm text-center">{pendingMessage}</p>
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !!pendingMessage}
             className="w-full py-3 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-medium transition-colors"
           >
             {loading ? 'Verifying...' : 'Access Site'}
