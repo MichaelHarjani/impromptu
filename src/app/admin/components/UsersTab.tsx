@@ -149,7 +149,7 @@ export default function UsersTab({ isActive }: UsersTabProps) {
           <div className="p-8 text-center text-gray-600 dark:text-gray-400">Loading users...</div>
         ) : users.length === 0 ? (
           <div className="p-8 text-center text-gray-600 dark:text-gray-400">
-            No users yet. Users will appear here when they attempt to log in.
+            No users yet. Users will appear here when they attempt to sign in.
           </div>
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
