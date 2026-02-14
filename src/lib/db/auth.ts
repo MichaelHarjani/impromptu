@@ -1,24 +1,3 @@
-import bcrypt from 'bcryptjs';
-import { getDb } from './index';
-import type { User } from '../types';
-
-export function getUserByUsername(username: string): User | null {
-  const db = getDb();
-  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as User | undefined;
-  return user || null;
-}
-
-export function verifyPassword(plainPassword: string, hashedPassword: string): boolean {
-  return bcrypt.compareSync(plainPassword, hashedPassword);
-}
-
-export function updatePassword(userId: number, newPassword: string): boolean {
-  const db = getDb();
-  const hash = bcrypt.hashSync(newPassword, 10);
-  const result = db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, userId);
-  return result.changes > 0;
-}
-
 // Rate limiting for login attempts
 const loginAttempts = new Map<string, { count: number; firstAttempt: number; lockedUntil?: number }>();
 

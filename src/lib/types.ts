@@ -29,13 +29,6 @@ export interface GeneratedQuestion {
   variableUsed?: string;
 }
 
-export interface User {
-  id: number;
-  username: string;
-  password_hash: string;
-  created_at: string;
-}
-
 export interface NumberInput {
   id: number;
   number: number;

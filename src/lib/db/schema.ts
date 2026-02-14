@@ -34,15 +34,6 @@ export function initializeDb(database: Database.Database) {
   `);
 
   database.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  database.exec(`
     CREATE TABLE IF NOT EXISTS feedback (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       question_id INTEGER,
@@ -92,7 +83,7 @@ export function initializeDb(database: Database.Database) {
   `);
 
   database.exec(`
-    CREATE TABLE IF NOT EXISTS email_users (
+    CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
       approved INTEGER NOT NULL DEFAULT 0,
@@ -101,16 +92,24 @@ export function initializeDb(database: Database.Database) {
     )
   `);
 
+  // Migration: rename email_users table to users (drop old users table first)
+  try {
+    database.exec('DROP TABLE IF EXISTS users');
+    database.exec('ALTER TABLE email_users RENAME TO users');
+  } catch {
+    // Already renamed
+  }
+
   // Migration: add is_admin column if it doesn't exist yet
   try {
-    database.exec('ALTER TABLE email_users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+    database.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
   } catch {
     // Column already exists
   }
 
   // Migration: rename email column to username
   try {
-    database.exec('ALTER TABLE email_users RENAME COLUMN email TO username');
+    database.exec('ALTER TABLE users RENAME COLUMN email TO username');
   } catch {
     // Column already renamed
   }
@@ -125,7 +124,7 @@ export function initializeDb(database: Database.Database) {
       variable_used TEXT,
       level TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (email_user_id) REFERENCES email_users(id) ON DELETE CASCADE
+      FOREIGN KEY (email_user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
 
@@ -154,9 +153,9 @@ export function initializeDb(database: Database.Database) {
   // Seed default admin users
   const adminUsernames = ['george@lot', 'michael@lot'];
   for (const username of adminUsernames) {
-    const exists = database.prepare('SELECT id FROM email_users WHERE username = ?').get(username);
+    const exists = database.prepare('SELECT id FROM users WHERE username = ?').get(username);
     if (!exists) {
-      database.prepare('INSERT INTO email_users (username, approved, is_admin) VALUES (?, 1, 1)').run(username);
+      database.prepare('INSERT INTO users (username, approved, is_admin) VALUES (?, 1, 1)').run(username);
     }
   }
 

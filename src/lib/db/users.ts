@@ -3,22 +3,22 @@ import type { EmailUser, UserActivity, Level } from '../types';
 
 export function findOrCreateEmailUser(username: string): EmailUser {
   const db = getDb();
-  const existing = db.prepare('SELECT * FROM email_users WHERE username = ?').get(username) as EmailUser | undefined;
+  const existing = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as EmailUser | undefined;
   if (existing) return existing;
 
-  const result = db.prepare('INSERT INTO email_users (username) VALUES (?)').run(username);
-  return db.prepare('SELECT * FROM email_users WHERE id = ?').get(result.lastInsertRowid) as EmailUser;
+  const result = db.prepare('INSERT INTO users (username) VALUES (?)').run(username);
+  return db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid) as EmailUser;
 }
 
 export function getEmailUser(username: string): EmailUser | null {
   const db = getDb();
-  const user = db.prepare('SELECT * FROM email_users WHERE username = ?').get(username) as EmailUser | undefined;
+  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as EmailUser | undefined;
   return user || null;
 }
 
 export function getEmailUserById(id: number): EmailUser | null {
   const db = getDb();
-  const user = db.prepare('SELECT * FROM email_users WHERE id = ?').get(id) as EmailUser | undefined;
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as EmailUser | undefined;
   return user || null;
 }
 
@@ -29,7 +29,7 @@ export function getAllEmailUsers(): (EmailUser & { activity_count: number; last_
       eu.*,
       COUNT(ua.id) as activity_count,
       MAX(ua.created_at) as last_active
-    FROM email_users eu
+    FROM users eu
     LEFT JOIN user_activity ua ON eu.id = ua.email_user_id
     GROUP BY eu.id
     ORDER BY eu.created_at DESC
@@ -38,22 +38,22 @@ export function getAllEmailUsers(): (EmailUser & { activity_count: number; last_
 
 export function approveEmailUser(id: number): void {
   const db = getDb();
-  db.prepare('UPDATE email_users SET approved = 1 WHERE id = ?').run(id);
+  db.prepare('UPDATE users SET approved = 1 WHERE id = ?').run(id);
 }
 
 export function revokeEmailUser(id: number): void {
   const db = getDb();
-  db.prepare('UPDATE email_users SET approved = 0 WHERE id = ?').run(id);
+  db.prepare('UPDATE users SET approved = 0 WHERE id = ?').run(id);
 }
 
 export function setEmailUserAdmin(id: number, isAdmin: boolean): void {
   const db = getDb();
-  db.prepare('UPDATE email_users SET is_admin = ? WHERE id = ?').run(isAdmin ? 1 : 0, id);
+  db.prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(isAdmin ? 1 : 0, id);
 }
 
 export function deleteEmailUser(id: number): boolean {
   const db = getDb();
-  const result = db.prepare('DELETE FROM email_users WHERE id = ?').run(id);
+  const result = db.prepare('DELETE FROM users WHERE id = ?').run(id);
   return result.changes > 0;
 }
 
