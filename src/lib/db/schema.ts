@@ -151,7 +151,7 @@ export function initializeDb(database: Database.Database) {
   }
 
   // Seed default admin users
-  const adminUsernames = ['george@lot', 'michael@lot'];
+  const adminUsernames = ['george', 'michael'];
   for (const username of adminUsernames) {
     const exists = database.prepare('SELECT id FROM users WHERE username = ?').get(username);
     if (!exists) {
