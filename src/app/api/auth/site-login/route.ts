@@ -76,9 +76,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
+    if (!email || typeof email !== 'string' || !email.trim()) {
       return NextResponse.json(
-        { error: 'A valid email address is required' },
+        { error: 'Username is required' },
         { status: 400 }
       );
     }
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     const emailUser = findOrCreateEmailUser(email.trim().toLowerCase());
     if (!emailUser.approved) {
       return NextResponse.json(
-        { error: 'Your email is pending approval. Please contact your instructor.' },
+        { error: 'Your username is pending approval. Please contact your instructor.' },
         { status: 403 }
       );
     }

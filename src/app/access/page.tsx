@@ -28,7 +28,7 @@ export default function AccessPage() {
       const data = await response.json();
 
       if (response.status === 403) {
-        setPendingMessage('Your email has been submitted for approval. Please check back later.');
+        setPendingMessage('Your username has been submitted for approval. Please check back later.');
         return;
       }
 
@@ -59,16 +59,16 @@ export default function AccessPage() {
             priority
           />
           <h1 className="text-xl font-semibold text-gray-900">Site Access</h1>
-          <p className="text-sm text-gray-600 mt-2">Enter your email and password to continue</p>
+          <p className="text-sm text-gray-600 mt-2">Enter your username and password to continue</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <input
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email address"
+              placeholder="Username"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
               required
               autoFocus
