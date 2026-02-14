@@ -92,12 +92,13 @@ export function initializeDb(database: Database.Database) {
     )
   `);
 
-  // Migration: rename email_users table to users (drop old users table first)
-  try {
+  // Migration: rename email_users table to users (only if email_users still exists)
+  const hasEmailUsersTable = database.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='email_users'"
+  ).get();
+  if (hasEmailUsersTable) {
     database.exec('DROP TABLE IF EXISTS users');
     database.exec('ALTER TABLE email_users RENAME TO users');
-  } catch {
-    // Already renamed
   }
 
   // Migration: add is_admin column if it doesn't exist yet
@@ -107,11 +108,11 @@ export function initializeDb(database: Database.Database) {
     // Column already exists
   }
 
-  // Migration: rename email column to username
-  try {
+  // Migration: rename email column to username (only if email column still exists)
+  const hasEmailColumn = (database.prepare("PRAGMA table_info(users)").all() as { name: string }[])
+    .some(col => col.name === 'email');
+  if (hasEmailColumn) {
     database.exec('ALTER TABLE users RENAME COLUMN email TO username');
-  } catch {
-    // Column already renamed
   }
 
   database.exec(`
