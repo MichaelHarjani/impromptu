@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     recordTemplateShown(question.templateId, question.variableUsed);
   }
 
-  // Record user activity if logged in with email
+  // Record user activity if logged in
   try {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
     if (session.emailUserId) {

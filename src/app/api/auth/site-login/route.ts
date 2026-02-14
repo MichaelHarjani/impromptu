@@ -67,7 +67,7 @@ function getLocationFromIp(ip: string): { city?: string; country?: string; regio
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { password, email } = body;
+    const { password, username } = body;
 
     if (!password) {
       return NextResponse.json(
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!email || typeof email !== 'string' || !email.trim()) {
+    if (!username || typeof username !== 'string' || !username.trim()) {
       return NextResponse.json(
         { error: 'Username is required' },
         { status: 400 }
@@ -145,8 +145,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check email user approval
-    const emailUser = findOrCreateEmailUser(email.trim().toLowerCase());
+    // Check user approval
+    const emailUser = findOrCreateEmailUser(username.trim().toLowerCase());
     if (!emailUser.approved) {
       return NextResponse.json(
         { error: 'Your username is pending approval. Please contact your instructor.' },
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
     session.siteAccessGranted = true;
     session.emailUserId = emailUser.id;
-    session.email = emailUser.email;
+    session.emailUsername = emailUser.username;
     if (emailUser.is_admin) {
       session.isLoggedIn = true;
     }

@@ -1,18 +1,18 @@
 import { getDb } from './index';
 import type { EmailUser, UserActivity, Level } from '../types';
 
-export function findOrCreateEmailUser(email: string): EmailUser {
+export function findOrCreateEmailUser(username: string): EmailUser {
   const db = getDb();
-  const existing = db.prepare('SELECT * FROM email_users WHERE email = ?').get(email) as EmailUser | undefined;
+  const existing = db.prepare('SELECT * FROM email_users WHERE username = ?').get(username) as EmailUser | undefined;
   if (existing) return existing;
 
-  const result = db.prepare('INSERT INTO email_users (email) VALUES (?)').run(email);
+  const result = db.prepare('INSERT INTO email_users (username) VALUES (?)').run(username);
   return db.prepare('SELECT * FROM email_users WHERE id = ?').get(result.lastInsertRowid) as EmailUser;
 }
 
-export function getEmailUser(email: string): EmailUser | null {
+export function getEmailUser(username: string): EmailUser | null {
   const db = getDb();
-  const user = db.prepare('SELECT * FROM email_users WHERE email = ?').get(email) as EmailUser | undefined;
+  const user = db.prepare('SELECT * FROM email_users WHERE username = ?').get(username) as EmailUser | undefined;
   return user || null;
 }
 

@@ -94,7 +94,7 @@ export function initializeDb(database: Database.Database) {
   database.exec(`
     CREATE TABLE IF NOT EXISTS email_users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
+      username TEXT UNIQUE NOT NULL,
       approved INTEGER NOT NULL DEFAULT 0,
       is_admin INTEGER NOT NULL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -106,6 +106,13 @@ export function initializeDb(database: Database.Database) {
     database.exec('ALTER TABLE email_users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
   } catch {
     // Column already exists
+  }
+
+  // Migration: rename email column to username
+  try {
+    database.exec('ALTER TABLE email_users RENAME COLUMN email TO username');
+  } catch {
+    // Column already renamed
   }
 
   database.exec(`
@@ -144,12 +151,12 @@ export function initializeDb(database: Database.Database) {
     database.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('site_password', defaultSitePassword);
   }
 
-  // Seed default admin email users
-  const adminEmails = ['george@lot', 'michael@lot'];
-  for (const email of adminEmails) {
-    const exists = database.prepare('SELECT id FROM email_users WHERE email = ?').get(email);
+  // Seed default admin users
+  const adminUsernames = ['george@lot', 'michael@lot'];
+  for (const username of adminUsernames) {
+    const exists = database.prepare('SELECT id FROM email_users WHERE username = ?').get(username);
     if (!exists) {
-      database.prepare('INSERT INTO email_users (email, approved, is_admin) VALUES (?, 1, 1)').run(email);
+      database.prepare('INSERT INTO email_users (username, approved, is_admin) VALUES (?, 1, 1)').run(username);
     }
   }
 

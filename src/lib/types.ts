@@ -55,7 +55,7 @@ export interface SiteAccessLog {
 
 export interface EmailUser {
   id: number;
-  email: string;
+  username: string;
   approved: number; // 0 or 1
   is_admin: number; // 0 or 1
   created_at: string;

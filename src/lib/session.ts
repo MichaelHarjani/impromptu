@@ -6,7 +6,7 @@ export interface SessionData {
   isLoggedIn: boolean;
   siteAccessGranted: boolean;
   emailUserId?: number;
-  email?: string;
+  emailUsername?: string;
 }
 
 export const sessionOptions: SessionOptions = {

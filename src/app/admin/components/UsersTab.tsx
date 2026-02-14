@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 
 interface EmailUserWithStats {
   id: number;
-  email: string;
+  username: string;
   approved: number;
   is_admin: number;
   created_at: string;
@@ -170,7 +170,7 @@ export default function UsersTab({ isActive }: UsersTabProps) {
                     </svg>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{user.email}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{user.username}</p>
                         {user.is_admin === 1 && (
                           <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
                             Admin
