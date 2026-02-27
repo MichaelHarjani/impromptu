@@ -3,8 +3,10 @@ import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import { SessionData, sessionOptions } from '@/lib/session';
 import { getRandomQuestion, recordQuestionShown, recordTemplateShown, recordNumberInput, recordUserActivity, Level } from '@/lib/db';
+import type { AgeGroup } from '@/lib/types';
 
 const validLevels: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
+const validAgeGroups: AgeGroup[] = ['5-7', '8-11', '12+'];
 
 function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
@@ -22,10 +24,18 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const level = searchParams.get('level') as Level;
   const numberParam = searchParams.get('number');
+  const ageGroup = (searchParams.get('ageGroup') as AgeGroup) || '8-11';
 
   if (!level || !validLevels.includes(level)) {
     return NextResponse.json(
       { error: 'Invalid level. Must be one of: L1, L2, L3, L4, L5' },
+      { status: 400 }
+    );
+  }
+
+  if (!validAgeGroups.includes(ageGroup)) {
+    return NextResponse.json(
+      { error: 'Invalid age group. Must be one of: 5-7, 8-11, 12+' },
       { status: 400 }
     );
   }
@@ -39,7 +49,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const question = getRandomQuestion(level);
+  const question = getRandomQuestion(level, ageGroup, 'practice');
 
   if (!question) {
     return NextResponse.json(

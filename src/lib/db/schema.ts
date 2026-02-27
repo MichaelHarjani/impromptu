@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
-import type { Level } from '../types';
+import type { Level, AgeGroup, QuestionBank } from '../types';
 
 export function initializeDb(database: Database.Database) {
   database.exec(`
@@ -115,6 +115,30 @@ export function initializeDb(database: Database.Database) {
     database.exec('ALTER TABLE users RENAME COLUMN email TO username');
   }
 
+  // Migration: add age_group and bank columns to questions
+  try {
+    database.exec("ALTER TABLE questions ADD COLUMN age_group TEXT NOT NULL DEFAULT '8-11'");
+  } catch {
+    // Column already exists
+  }
+  try {
+    database.exec("ALTER TABLE questions ADD COLUMN bank TEXT NOT NULL DEFAULT 'practice'");
+  } catch {
+    // Column already exists
+  }
+
+  // Migration: add age_group and bank columns to question_templates
+  try {
+    database.exec("ALTER TABLE question_templates ADD COLUMN age_group TEXT NOT NULL DEFAULT '8-11'");
+  } catch {
+    // Column already exists
+  }
+  try {
+    database.exec("ALTER TABLE question_templates ADD COLUMN bank TEXT NOT NULL DEFAULT 'practice'");
+  } catch {
+    // Column already exists
+  }
+
   database.exec(`
     CREATE TABLE IF NOT EXISTS user_activity (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -220,10 +244,10 @@ function seedDatabase(database: Database.Database): void {
   const questionCount = database.prepare('SELECT COUNT(*) as count FROM questions').get() as { count: number };
 
   if (questionCount.count === 0) {
-    const insert = database.prepare('INSERT INTO questions (level, text) VALUES (?, ?)');
+    const insert = database.prepare('INSERT INTO questions (level, text, age_group, bank) VALUES (?, ?, ?, ?)');
     for (const [level, questions] of Object.entries(sampleQuestions)) {
       for (const text of questions) {
-        insert.run(level, text);
+        insert.run(level, text, '8-11', 'practice');
       }
     }
   }

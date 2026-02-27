@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { QuestionWithFeedback } from '@/lib/types';
+import type { QuestionWithFeedback, AgeGroup, QuestionBank } from '@/lib/types';
 import AdminHeader from './components/AdminHeader';
 import QuestionsTab from './components/QuestionsTab';
 import TemplatesTab from './components/TemplatesTab';
@@ -14,9 +14,17 @@ import UsersTab from './components/UsersTab';
 
 type Tab = 'questions' | 'templates' | 'feedback' | 'users' | 'logs' | 'lucky-numbers' | 'settings';
 
+const ageGroups: AgeGroup[] = ['5-7', '8-11', '12+'];
+const banks: { value: QuestionBank; label: string }[] = [
+  { value: 'practice', label: 'Practice' },
+  { value: 'competition', label: 'Competition' },
+];
+
 interface Template {
   id: number;
   level: 'L3' | 'L4';
+  age_group: AgeGroup;
+  bank: QuestionBank;
   pre_text: string;
   post_text: string;
   variables: string;
@@ -40,6 +48,8 @@ export default function AdminDashboard() {
   const [questions, setQuestions] = useState<QuestionWithFeedback[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(true);
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState<AgeGroup>('8-11');
+  const [selectedBank, setSelectedBank] = useState<QuestionBank>('practice');
 
   const checkSession = useCallback(async () => {
     try {
@@ -57,7 +67,8 @@ export default function AdminDashboard() {
 
   const fetchQuestions = useCallback(async () => {
     try {
-      const response = await fetch('/api/questions');
+      const params = new URLSearchParams({ ageGroup: selectedAgeGroup, bank: selectedBank });
+      const response = await fetch(`/api/questions?${params}`);
       if (response.status === 401) { router.push('/access'); return; }
       const data = await response.json();
       setQuestions(data);
@@ -66,18 +77,19 @@ export default function AdminDashboard() {
     } finally {
       setQuestionsLoading(false);
     }
-  }, [router]);
+  }, [router, selectedAgeGroup, selectedBank]);
 
   const fetchTemplates = useCallback(async () => {
     try {
-      const response = await fetch('/api/templates');
+      const params = new URLSearchParams({ ageGroup: selectedAgeGroup, bank: selectedBank });
+      const response = await fetch(`/api/templates?${params}`);
       if (response.status === 401) { router.push('/access'); return; }
       const data = await response.json();
       setTemplates(data);
     } catch (error) {
       console.error('Failed to fetch templates:', error);
     }
-  }, [router]);
+  }, [router, selectedAgeGroup, selectedBank]);
 
   useEffect(() => { checkSession(); }, [checkSession]);
 
@@ -122,6 +134,46 @@ export default function AdminDashboard() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <AdminHeader onLogout={handleLogout} />
 
+        {/* Age Group & Bank Switcher */}
+        <div className="flex items-center justify-between gap-4 flex-wrap mb-6 rounded-xl shadow-sm border p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Age Group:</span>
+            <div className="flex gap-1">
+              {ageGroups.map((ag) => (
+                <button
+                  key={ag}
+                  onClick={() => setSelectedAgeGroup(ag)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    selectedAgeGroup === ag
+                      ? 'bg-red-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {ag}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bank:</span>
+            <div className="flex gap-1">
+              {banks.map((b) => (
+                <button
+                  key={b.value}
+                  onClick={() => setSelectedBank(b.value)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    selectedBank === b.value
+                      ? 'bg-red-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Tabs */}
         <div className="flex gap-1 mb-6 border-b border-gray-200 dark:border-gray-700">
           {tabs.map((tab) => (
@@ -149,6 +201,8 @@ export default function AdminDashboard() {
             questions={questions}
             loading={questionsLoading}
             onRefresh={fetchQuestions}
+            ageGroup={selectedAgeGroup}
+            bank={selectedBank}
           />
         )}
 
@@ -156,6 +210,8 @@ export default function AdminDashboard() {
           <TemplatesTab
             templates={templates}
             onRefresh={fetchTemplates}
+            ageGroup={selectedAgeGroup}
+            bank={selectedBank}
           />
         )}
 

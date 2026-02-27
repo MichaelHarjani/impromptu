@@ -1,8 +1,12 @@
 export type Level = 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+export type AgeGroup = '5-7' | '8-11' | '12+';
+export type QuestionBank = 'practice' | 'competition';
 
 export interface Question {
   id: number;
   level: Level;
+  age_group: AgeGroup;
+  bank: QuestionBank;
   text: string;
   created_at: string;
 }
@@ -15,6 +19,8 @@ export interface QuestionWithFeedback extends Question {
 export interface QuestionTemplate {
   id: number;
   level: 'L3' | 'L4';
+  age_group: AgeGroup;
+  bank: QuestionBank;
   pre_text: string;
   post_text: string;
   variables: string; // JSON array stored as string

@@ -1,17 +1,21 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import type { Level, QuestionWithFeedback } from '@/lib/types';
+import type { Level, AgeGroup, QuestionBank, QuestionWithFeedback } from '@/lib/types';
 
 const levels: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
+const ageGroupOptions: AgeGroup[] = ['5-7', '8-11', '12+'];
+const bankOptions: QuestionBank[] = ['practice', 'competition'];
 
 interface QuestionsTabProps {
   questions: QuestionWithFeedback[];
   loading: boolean;
   onRefresh: () => void;
+  ageGroup: AgeGroup;
+  bank: QuestionBank;
 }
 
-export default function QuestionsTab({ questions, loading, onRefresh }: QuestionsTabProps) {
+export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, bank }: QuestionsTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterLevel, setFilterLevel] = useState<Level | 'all'>('all');
 
@@ -51,7 +55,7 @@ export default function QuestionsTab({ questions, loading, onRefresh }: Question
       const response = await fetch('/api/questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ level: newLevel, text: newText.trim() }),
+        body: JSON.stringify({ level: newLevel, text: newText.trim(), age_group: ageGroup, bank }),
       });
       if (response.ok) {
         setNewText('');
@@ -74,7 +78,7 @@ export default function QuestionsTab({ questions, loading, onRefresh }: Question
         await fetch('/api/questions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ level: batchLevel, text }),
+          body: JSON.stringify({ level: batchLevel, text, age_group: ageGroup, bank }),
         });
       }
       setBatchText('');
@@ -97,15 +101,23 @@ export default function QuestionsTab({ questions, loading, onRefresh }: Question
     setImporting(true);
     try {
       for (const line of lines) {
-        const match = line.match(/^"?([^",]+)"?,\s*"?(.+?)"?\s*$/);
+        // Support both old format (Level,Question) and new format (Level,Question,AgeGroup,Bank)
+        const match = line.match(/^"?([^",]+)"?,\s*"?(.+?)"?(?:,\s*"?([^",]*)"?(?:,\s*"?([^",]*)"?)?)?\s*$/);
         if (match) {
           const level = match[1].trim().toUpperCase() as Level;
           const questionText = match[2].trim().replace(/^"|"$/g, '');
+          const csvAgeGroup = (match[3]?.trim() || ageGroup) as AgeGroup;
+          const csvBank = (match[4]?.trim() || bank) as QuestionBank;
           if (levels.includes(level) && questionText) {
             await fetch('/api/questions', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ level, text: questionText }),
+              body: JSON.stringify({
+                level,
+                text: questionText,
+                age_group: ageGroupOptions.includes(csvAgeGroup) ? csvAgeGroup : ageGroup,
+                bank: bankOptions.includes(csvBank) ? csvBank : bank,
+              }),
             });
           }
         }
@@ -122,8 +134,8 @@ export default function QuestionsTab({ questions, loading, onRefresh }: Question
   };
 
   const handleCSVExport = () => {
-    const csvContent = 'Level,Question\n' + filteredQuestions.map(q =>
-      `${q.level},"${q.text.replace(/"/g, '""')}"`
+    const csvContent = 'Level,Question,AgeGroup,Bank\n' + filteredQuestions.map(q =>
+      `${q.level},"${q.text.replace(/"/g, '""')}",${q.age_group},${q.bank}`
     ).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -147,7 +159,7 @@ export default function QuestionsTab({ questions, loading, onRefresh }: Question
       const response = await fetch(`/api/questions/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ level: editLevel, text: editText.trim() }),
+        body: JSON.stringify({ level: editLevel, text: editText.trim(), age_group: ageGroup, bank }),
       });
       if (response.ok) {
         setEditingId(null);

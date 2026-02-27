@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTheme } from '@/lib/theme-context';
-import type { Level, GeneratedQuestion } from '@/lib/types';
+import type { Level, AgeGroup, GeneratedQuestion } from '@/lib/types';
 
 const levels: { value: Level; label: string }[] = [
   { value: 'L1', label: '1' },
@@ -12,6 +12,12 @@ const levels: { value: Level; label: string }[] = [
   { value: 'L3', label: '3' },
   { value: 'L4', label: '4' },
   { value: 'L5', label: '5' },
+];
+
+const ageGroups: { value: AgeGroup; label: string }[] = [
+  { value: '5-7', label: '5-7' },
+  { value: '8-11', label: '8-11' },
+  { value: '12+', label: '12+' },
 ];
 
 const ThemeIcon = ({ mode }: { mode: 'system' | 'light' | 'dark' }) => {
@@ -35,6 +41,7 @@ const ThemeIcon = ({ mode }: { mode: 'system' | 'light' | 'dark' }) => {
 export default function Home() {
   const { mode, setMode } = useTheme();
   const [selectedLevel, setSelectedLevel] = useState<Level>('L1');
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState<AgeGroup>('8-11');
   const [numberInput, setNumberInput] = useState('');
   const [question, setQuestion] = useState<GeneratedQuestion | null>(null);
   const [loading, setLoading] = useState(false);
@@ -107,7 +114,7 @@ export default function Home() {
     resetTimer();
 
     try {
-      const response = await fetch(`/api/questions/random?level=${selectedLevel}&number=${num}`);
+      const response = await fetch(`/api/questions/random?level=${selectedLevel}&number=${num}&ageGroup=${encodeURIComponent(selectedAgeGroup)}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -288,23 +295,43 @@ export default function Home() {
       {/* Fixed Bottom Controls */}
       <div className="fixed bottom-0 left-0 right-0 px-4 py-6 border-t bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800">
         <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-4">
-          {/* Level Selector */}
-          <div className="flex items-center justify-center gap-1">
-            <span className="text-sm mr-2 text-gray-500 dark:text-gray-400">Level</span>
-            {levels.map((level) => (
-              <button
-                key={level.value}
-                type="button"
-                onClick={() => setSelectedLevel(level.value)}
-                className={`w-8 h-8 rounded-full text-sm font-medium transition-all ${
-                  selectedLevel === level.value
-                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
-                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
-                }`}
-              >
-                {level.label}
-              </button>
-            ))}
+          {/* Age Group & Level Selector */}
+          <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center gap-1">
+              <span className="text-sm mr-1 text-gray-500 dark:text-gray-400">Age</span>
+              {ageGroups.map((ag) => (
+                <button
+                  key={ag.value}
+                  type="button"
+                  onClick={() => setSelectedAgeGroup(ag.value)}
+                  className={`px-2 h-8 rounded-full text-sm font-medium transition-all ${
+                    selectedAgeGroup === ag.value
+                      ? 'bg-red-600 text-white'
+                      : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                  }`}
+                >
+                  {ag.label}
+                </button>
+              ))}
+            </div>
+            <div className="w-px h-5 bg-gray-300 dark:bg-gray-600" />
+            <div className="flex items-center gap-1">
+              <span className="text-sm mr-1 text-gray-500 dark:text-gray-400">Level</span>
+              {levels.map((level) => (
+                <button
+                  key={level.value}
+                  type="button"
+                  onClick={() => setSelectedLevel(level.value)}
+                  className={`w-8 h-8 rounded-full text-sm font-medium transition-all ${
+                    selectedLevel === level.value
+                      ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                      : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                  }`}
+                >
+                  {level.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Number Input */}

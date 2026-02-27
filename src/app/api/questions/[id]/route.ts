@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import { updateQuestion, deleteQuestion, Level } from '@/lib/db';
+import type { AgeGroup, QuestionBank } from '@/lib/types';
 import { SessionData, sessionOptions } from '@/lib/session';
 
 const validLevels: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
+const validAgeGroups: AgeGroup[] = ['5-7', '8-11', '12+'];
+const validBanks: QuestionBank[] = ['practice', 'competition'];
 
 async function getSession() {
   return getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -29,7 +32,7 @@ export async function PUT(
 
   try {
     const body = await request.json();
-    const { level, text } = body;
+    const { level, text, age_group, bank } = body;
 
     if (!level || !validLevels.includes(level)) {
       return NextResponse.json(
@@ -45,7 +48,21 @@ export async function PUT(
       );
     }
 
-    const question = updateQuestion(questionId, level, text.trim());
+    if (age_group && !validAgeGroups.includes(age_group)) {
+      return NextResponse.json(
+        { error: 'Invalid age group. Must be one of: 5-7, 8-11, 12+' },
+        { status: 400 }
+      );
+    }
+
+    if (bank && !validBanks.includes(bank)) {
+      return NextResponse.json(
+        { error: 'Invalid bank. Must be one of: practice, competition' },
+        { status: 400 }
+      );
+    }
+
+    const question = updateQuestion(questionId, level, text.trim(), age_group, bank);
 
     if (!question) {
       return NextResponse.json({ error: 'Question not found' }, { status: 404 });

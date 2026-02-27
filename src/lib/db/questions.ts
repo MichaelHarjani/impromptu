@@ -1,34 +1,36 @@
 import { getDb } from './index';
-import type { Level, Question, QuestionWithFeedback, QuestionTemplate, GeneratedQuestion } from '../types';
+import type { Level, AgeGroup, QuestionBank, Question, QuestionWithFeedback, QuestionTemplate, GeneratedQuestion } from '../types';
 
-export function getRandomQuestion(level: Level): GeneratedQuestion | null {
+export function getRandomQuestion(level: Level, ageGroup: AgeGroup = '8-11', bank: QuestionBank = 'practice'): GeneratedQuestion | null {
   const db = getDb();
 
   const lockSetting = db.prepare('SELECT value FROM settings WHERE key = ?').get('lock_duration_minutes') as { value: string } | undefined;
   const lockMinutes = parseInt(lockSetting?.value || '30', 10);
 
   if (level === 'L3' || level === 'L4') {
-    return getRandomTemplateQuestion(level, lockMinutes);
+    return getRandomTemplateQuestion(level, lockMinutes, ageGroup, bank);
   }
 
   const question = db.prepare(`
     SELECT q.* FROM questions q
     WHERE q.level = ?
+    AND q.age_group = ?
+    AND q.bank = ?
     AND q.id NOT IN (
       SELECT question_id FROM question_history
       WHERE shown_at > datetime('now', '-' || ? || ' minutes')
     )
     ORDER BY RANDOM()
     LIMIT 1
-  `).get(level, lockMinutes) as Question | undefined;
+  `).get(level, ageGroup, bank, lockMinutes) as Question | undefined;
 
   if (!question) {
     const fallback = db.prepare(`
       SELECT * FROM questions
-      WHERE level = ?
+      WHERE level = ? AND age_group = ? AND bank = ?
       ORDER BY RANDOM()
       LIMIT 1
-    `).get(level) as Question | undefined;
+    `).get(level, ageGroup, bank) as Question | undefined;
 
     if (!fallback) return null;
     return { type: 'simple', id: fallback.id, text: fallback.text };
@@ -37,10 +39,10 @@ export function getRandomQuestion(level: Level): GeneratedQuestion | null {
   return { type: 'simple', id: question.id, text: question.text };
 }
 
-function getRandomTemplateQuestion(level: 'L3' | 'L4', lockMinutes: number): GeneratedQuestion | null {
+function getRandomTemplateQuestion(level: 'L3' | 'L4', lockMinutes: number, ageGroup: AgeGroup, bank: QuestionBank): GeneratedQuestion | null {
   const db = getDb();
 
-  const templates = db.prepare('SELECT * FROM question_templates WHERE level = ?').all(level) as QuestionTemplate[];
+  const templates = db.prepare('SELECT * FROM question_templates WHERE level = ? AND age_group = ? AND bank = ?').all(level, ageGroup, bank) as QuestionTemplate[];
   if (templates.length === 0) return null;
 
   const combinations: { template: QuestionTemplate; variable: string }[] = [];
@@ -92,16 +94,25 @@ export function resetQuestionPool(): void {
   db.prepare('DELETE FROM template_history').run();
 }
 
-export function getAllQuestions(level?: Level): Question[] {
+export function getAllQuestions(level?: Level, ageGroup?: AgeGroup, bank?: QuestionBank): Question[] {
   const db = getDb();
-  if (level) {
-    return db.prepare('SELECT * FROM questions WHERE level = ? ORDER BY id').all(level) as Question[];
-  }
-  return db.prepare('SELECT * FROM questions ORDER BY level, id').all() as Question[];
+  const conditions: string[] = [];
+  const params: string[] = [];
+  if (level) { conditions.push('level = ?'); params.push(level); }
+  if (ageGroup) { conditions.push('age_group = ?'); params.push(ageGroup); }
+  if (bank) { conditions.push('bank = ?'); params.push(bank); }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  return db.prepare(`SELECT * FROM questions ${where} ORDER BY level, id`).all(...params) as Question[];
 }
 
-export function getAllQuestionsWithFeedback(level?: Level): QuestionWithFeedback[] {
+export function getAllQuestionsWithFeedback(level?: Level, ageGroup?: AgeGroup, bank?: QuestionBank): QuestionWithFeedback[] {
   const db = getDb();
+  const conditions: string[] = [];
+  const params: string[] = [];
+  if (level) { conditions.push('q.level = ?'); params.push(level); }
+  if (ageGroup) { conditions.push('q.age_group = ?'); params.push(ageGroup); }
+  if (bank) { conditions.push('q.bank = ?'); params.push(bank); }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   const query = `
     SELECT
       q.*,
@@ -109,26 +120,27 @@ export function getAllQuestionsWithFeedback(level?: Level): QuestionWithFeedback
       COALESCE(SUM(CASE WHEN f.vote = 'down' THEN 1 ELSE 0 END), 0) as thumbs_down
     FROM questions q
     LEFT JOIN feedback f ON q.id = f.question_id
-    ${level ? 'WHERE q.level = ?' : ''}
+    ${where}
     GROUP BY q.id
     ORDER BY q.level, q.id
   `;
-
-  if (level) {
-    return db.prepare(query).all(level) as QuestionWithFeedback[];
-  }
-  return db.prepare(query).all() as QuestionWithFeedback[];
+  return db.prepare(query).all(...params) as QuestionWithFeedback[];
 }
 
-export function createQuestion(level: Level, text: string): Question {
+export function createQuestion(level: Level, text: string, ageGroup: AgeGroup = '8-11', bank: QuestionBank = 'practice'): Question {
   const db = getDb();
-  const result = db.prepare('INSERT INTO questions (level, text) VALUES (?, ?)').run(level, text);
+  const result = db.prepare('INSERT INTO questions (level, text, age_group, bank) VALUES (?, ?, ?, ?)').run(level, text, ageGroup, bank);
   return db.prepare('SELECT * FROM questions WHERE id = ?').get(result.lastInsertRowid) as Question;
 }
 
-export function updateQuestion(id: number, level: Level, text: string): Question | null {
+export function updateQuestion(id: number, level: Level, text: string, ageGroup?: AgeGroup, bank?: QuestionBank): Question | null {
   const db = getDb();
-  const result = db.prepare('UPDATE questions SET level = ?, text = ? WHERE id = ?').run(level, text, id);
+  const sets: string[] = ['level = ?', 'text = ?'];
+  const params: (string | number)[] = [level, text];
+  if (ageGroup) { sets.push('age_group = ?'); params.push(ageGroup); }
+  if (bank) { sets.push('bank = ?'); params.push(bank); }
+  params.push(id);
+  const result = db.prepare(`UPDATE questions SET ${sets.join(', ')} WHERE id = ?`).run(...params);
   if (result.changes === 0) return null;
   return db.prepare('SELECT * FROM questions WHERE id = ?').get(id) as Question;
 }

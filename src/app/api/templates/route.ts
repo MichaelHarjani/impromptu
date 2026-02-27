@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import { getAllTemplates, createTemplate } from '@/lib/db';
+import type { AgeGroup, QuestionBank } from '@/lib/types';
 import { SessionData, sessionOptions } from '@/lib/session';
+
+const validAgeGroups: AgeGroup[] = ['5-7', '8-11', '12+'];
+const validBanks: QuestionBank[] = ['practice', 'competition'];
 
 async function getSession() {
   return getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -17,6 +21,8 @@ export async function GET(request: NextRequest) {
 
   const searchParams = request.nextUrl.searchParams;
   const level = searchParams.get('level') as 'L3' | 'L4' | null;
+  const ageGroup = searchParams.get('ageGroup') as AgeGroup | null;
+  const bank = searchParams.get('bank') as QuestionBank | null;
 
   if (level && !['L3', 'L4'].includes(level)) {
     return NextResponse.json(
@@ -25,7 +31,21 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const templates = getAllTemplates(level || undefined);
+  if (ageGroup && !validAgeGroups.includes(ageGroup)) {
+    return NextResponse.json(
+      { error: 'Invalid age group. Must be one of: 5-7, 8-11, 12+' },
+      { status: 400 }
+    );
+  }
+
+  if (bank && !validBanks.includes(bank)) {
+    return NextResponse.json(
+      { error: 'Invalid bank. Must be one of: practice, competition' },
+      { status: 400 }
+    );
+  }
+
+  const templates = getAllTemplates(level || undefined, ageGroup || undefined, bank || undefined);
   return NextResponse.json(templates);
 }
 
@@ -38,7 +58,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { level, pre_text, post_text, variables } = body;
+    const { level, pre_text, post_text, variables, age_group, bank } = body;
 
     if (!level || !['L3', 'L4'].includes(level)) {
       return NextResponse.json(
@@ -68,7 +88,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const template = createTemplate(level, pre_text, post_text, variables);
+    if (age_group && !validAgeGroups.includes(age_group)) {
+      return NextResponse.json(
+        { error: 'Invalid age group. Must be one of: 5-7, 8-11, 12+' },
+        { status: 400 }
+      );
+    }
+
+    if (bank && !validBanks.includes(bank)) {
+      return NextResponse.json(
+        { error: 'Invalid bank. Must be one of: practice, competition' },
+        { status: 400 }
+      );
+    }
+
+    const template = createTemplate(level, pre_text, post_text, variables, age_group || '8-11', bank || 'practice');
     return NextResponse.json(template, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });

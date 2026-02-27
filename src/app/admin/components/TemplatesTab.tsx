@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import type { AgeGroup, QuestionBank } from '@/lib/types';
 
 interface Template {
   id: number;
   level: 'L3' | 'L4';
+  age_group: AgeGroup;
+  bank: QuestionBank;
   pre_text: string;
   post_text: string;
   variables: string;
@@ -16,9 +19,11 @@ const templateLevels: ('L3' | 'L4')[] = ['L3', 'L4'];
 interface TemplatesTabProps {
   templates: Template[];
   onRefresh: () => void;
+  ageGroup: AgeGroup;
+  bank: QuestionBank;
 }
 
-export default function TemplatesTab({ templates, onRefresh }: TemplatesTabProps) {
+export default function TemplatesTab({ templates, onRefresh, ageGroup, bank }: TemplatesTabProps) {
   const [templateFilterLevel, setTemplateFilterLevel] = useState<'L3' | 'L4' | 'all'>('all');
 
   // New template form
@@ -57,6 +62,8 @@ export default function TemplatesTab({ templates, onRefresh }: TemplatesTabProps
           pre_text: newPreText.trim(),
           post_text: newPostText.trim(),
           variables,
+          age_group: ageGroup,
+          bank,
         }),
       });
       if (response.ok) {
@@ -97,6 +104,8 @@ export default function TemplatesTab({ templates, onRefresh }: TemplatesTabProps
           pre_text: editPreText.trim(),
           post_text: editPostText.trim(),
           variables,
+          age_group: ageGroup,
+          bank,
         }),
       });
       if (response.ok) {

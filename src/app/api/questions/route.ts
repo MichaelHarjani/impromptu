@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import { getAllQuestionsWithFeedback, createQuestion, Level } from '@/lib/db';
+import type { AgeGroup, QuestionBank } from '@/lib/types';
 import { SessionData, sessionOptions } from '@/lib/session';
 
 const validLevels: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
+const validAgeGroups: AgeGroup[] = ['5-7', '8-11', '12+'];
+const validBanks: QuestionBank[] = ['practice', 'competition'];
 
 async function getSession() {
   return getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -19,6 +22,8 @@ export async function GET(request: NextRequest) {
 
   const searchParams = request.nextUrl.searchParams;
   const level = searchParams.get('level') as Level | null;
+  const ageGroup = searchParams.get('ageGroup') as AgeGroup | null;
+  const bank = searchParams.get('bank') as QuestionBank | null;
 
   if (level && !validLevels.includes(level)) {
     return NextResponse.json(
@@ -27,7 +32,21 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const questions = getAllQuestionsWithFeedback(level || undefined);
+  if (ageGroup && !validAgeGroups.includes(ageGroup)) {
+    return NextResponse.json(
+      { error: 'Invalid age group. Must be one of: 5-7, 8-11, 12+' },
+      { status: 400 }
+    );
+  }
+
+  if (bank && !validBanks.includes(bank)) {
+    return NextResponse.json(
+      { error: 'Invalid bank. Must be one of: practice, competition' },
+      { status: 400 }
+    );
+  }
+
+  const questions = getAllQuestionsWithFeedback(level || undefined, ageGroup || undefined, bank || undefined);
   return NextResponse.json(questions);
 }
 
@@ -40,7 +59,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { level, text } = body;
+    const { level, text, age_group, bank } = body;
 
     if (!level || !validLevels.includes(level)) {
       return NextResponse.json(
@@ -56,7 +75,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const question = createQuestion(level, text.trim());
+    if (age_group && !validAgeGroups.includes(age_group)) {
+      return NextResponse.json(
+        { error: 'Invalid age group. Must be one of: 5-7, 8-11, 12+' },
+        { status: 400 }
+      );
+    }
+
+    if (bank && !validBanks.includes(bank)) {
+      return NextResponse.json(
+        { error: 'Invalid bank. Must be one of: practice, competition' },
+        { status: 400 }
+      );
+    }
+
+    const question = createQuestion(level, text.trim(), age_group || '8-11', bank || 'practice');
     return NextResponse.json(question, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
