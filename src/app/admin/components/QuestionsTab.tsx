@@ -5,7 +5,6 @@ import type { Level, AgeGroup, QuestionBank, QuestionWithFeedback } from '@/lib/
 
 const levels: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
 const ageGroupOptions: AgeGroup[] = ['5-7', '8-11', '12+'];
-const bankOptions: QuestionBank[] = ['practice', 'competition'];
 
 interface QuestionsTabProps {
   questions: QuestionWithFeedback[];
