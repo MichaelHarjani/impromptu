@@ -11,28 +11,31 @@ interface QuestionsTabProps {
   questions: QuestionWithFeedback[];
   loading: boolean;
   onRefresh: () => void;
-  ageGroup: AgeGroup;
   bank: QuestionBank;
 }
 
-export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, bank }: QuestionsTabProps) {
+export default function QuestionsTab({ questions, loading, onRefresh, bank }: QuestionsTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [filterLevel, setFilterLevel] = useState<Level | 'all'>('all');
+
+  const isPractice = bank === 'practice';
 
   // New question form
   const [newLevel, setNewLevel] = useState<Level>('L1');
+  const [newAgeGroup, setNewAgeGroup] = useState<AgeGroup>('8-11');
   const [newText, setNewText] = useState('');
   const [adding, setAdding] = useState(false);
 
   // Batch import
   const [showBatchImport, setShowBatchImport] = useState(false);
   const [batchLevel, setBatchLevel] = useState<Level>('L1');
+  const [batchAgeGroup, setBatchAgeGroup] = useState<AgeGroup>('8-11');
   const [batchText, setBatchText] = useState('');
   const [importing, setImporting] = useState(false);
 
   // Edit state
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editLevel, setEditLevel] = useState<Level>('L1');
+  const [editAgeGroup, setEditAgeGroup] = useState<AgeGroup>('8-11');
   const [editText, setEditText] = useState('');
 
   // Select mode
@@ -42,9 +45,8 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
   const [bulkLevel, setBulkLevel] = useState<Level>('L1');
   const [bulkOperating, setBulkOperating] = useState(false);
 
-  const filteredQuestions = filterLevel === 'all'
-    ? questions
-    : questions.filter(q => q.level === filterLevel);
+  // No client-side filtering needed — admin switcher handles it via API
+  const filteredQuestions = questions;
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +57,12 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
       const response = await fetch('/api/questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ level: newLevel, text: newText.trim(), age_group: ageGroup, bank }),
+        body: JSON.stringify({
+          level: isPractice ? newLevel : 'L1',
+          text: newText.trim(),
+          age_group: isPractice ? '8-11' : newAgeGroup,
+          bank,
+        }),
       });
       if (response.ok) {
         setNewText('');
@@ -78,7 +85,12 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
         await fetch('/api/questions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ level: batchLevel, text, age_group: ageGroup, bank }),
+          body: JSON.stringify({
+            level: isPractice ? batchLevel : 'L1',
+            text,
+            age_group: isPractice ? '8-11' : batchAgeGroup,
+            bank,
+          }),
         });
       }
       setBatchText('');
@@ -101,24 +113,31 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
     setImporting(true);
     try {
       for (const line of lines) {
-        // Support both old format (Level,Question) and new format (Level,Question,AgeGroup,Bank)
-        const match = line.match(/^"?([^",]+)"?,\s*"?(.+?)"?(?:,\s*"?([^",]*)"?(?:,\s*"?([^",]*)"?)?)?\s*$/);
+        // CSV format: first column is Level or AgeGroup depending on bank, second is Question text
+        const match = line.match(/^"?([^",]+)"?,\s*"?(.+?)"?\s*$/);
         if (match) {
-          const level = match[1].trim().toUpperCase() as Level;
+          const firstCol = match[1].trim();
           const questionText = match[2].trim().replace(/^"|"$/g, '');
-          const csvAgeGroup = (match[3]?.trim() || ageGroup) as AgeGroup;
-          const csvBank = (match[4]?.trim() || bank) as QuestionBank;
-          if (levels.includes(level) && questionText) {
-            await fetch('/api/questions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                level,
-                text: questionText,
-                age_group: ageGroupOptions.includes(csvAgeGroup) ? csvAgeGroup : ageGroup,
-                bank: bankOptions.includes(csvBank) ? csvBank : bank,
-              }),
-            });
+          if (!questionText) continue;
+
+          if (isPractice) {
+            const level = firstCol.toUpperCase() as Level;
+            if (levels.includes(level)) {
+              await fetch('/api/questions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ level, text: questionText, age_group: '8-11', bank }),
+              });
+            }
+          } else {
+            const ag = firstCol as AgeGroup;
+            if (ageGroupOptions.includes(ag)) {
+              await fetch('/api/questions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ level: 'L1', text: questionText, age_group: ag, bank }),
+              });
+            }
           }
         }
       }
@@ -134,8 +153,11 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
   };
 
   const handleCSVExport = () => {
-    const csvContent = 'Level,Question,AgeGroup,Bank\n' + filteredQuestions.map(q =>
-      `${q.level},"${q.text.replace(/"/g, '""')}",${q.age_group},${q.bank}`
+    const header = isPractice ? 'Level,Question' : 'AgeGroup,Question';
+    const csvContent = header + '\n' + filteredQuestions.map(q =>
+      isPractice
+        ? `${q.level},"${q.text.replace(/"/g, '""')}"`
+        : `${q.age_group},"${q.text.replace(/"/g, '""')}"`
     ).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -150,6 +172,7 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
   const handleEdit = (question: QuestionWithFeedback) => {
     setEditingId(question.id);
     setEditLevel(question.level);
+    setEditAgeGroup(question.age_group);
     setEditText(question.text);
   };
 
@@ -159,7 +182,12 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
       const response = await fetch(`/api/questions/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ level: editLevel, text: editText.trim(), age_group: ageGroup, bank }),
+        body: JSON.stringify({
+          level: isPractice ? editLevel : 'L1',
+          text: editText.trim(),
+          age_group: isPractice ? '8-11' : editAgeGroup,
+          bank,
+        }),
       });
       if (response.ok) {
         setEditingId(null);
@@ -294,16 +322,30 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
           <div className="space-y-4">
             <div className="flex gap-4 items-start">
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Level</label>
-                <select
-                  value={batchLevel}
-                  onChange={(e) => setBatchLevel(e.target.value as Level)}
-                  className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                >
-                  {levels.map((level) => (
-                    <option key={level} value={level}>{level}</option>
-                  ))}
-                </select>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                  {isPractice ? 'Level' : 'Age Group'}
+                </label>
+                {isPractice ? (
+                  <select
+                    value={batchLevel}
+                    onChange={(e) => setBatchLevel(e.target.value as Level)}
+                    className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
+                    {levels.map((level) => (
+                      <option key={level} value={level}>{level}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <select
+                    value={batchAgeGroup}
+                    onChange={(e) => setBatchAgeGroup(e.target.value as AgeGroup)}
+                    className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
+                    {ageGroupOptions.map((ag) => (
+                      <option key={ag} value={ag}>{ag}</option>
+                    ))}
+                  </select>
+                )}
               </div>
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
@@ -328,15 +370,27 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
           </div>
         ) : (
           <form onSubmit={handleAdd} className="flex gap-4 flex-wrap">
-            <select
-              value={newLevel}
-              onChange={(e) => setNewLevel(e.target.value as Level)}
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-              {levels.map((level) => (
-                <option key={level} value={level}>{level}</option>
-              ))}
-            </select>
+            {isPractice ? (
+              <select
+                value={newLevel}
+                onChange={(e) => setNewLevel(e.target.value as Level)}
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                {levels.map((level) => (
+                  <option key={level} value={level}>{level}</option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={newAgeGroup}
+                onChange={(e) => setNewAgeGroup(e.target.value as AgeGroup)}
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                {ageGroupOptions.map((ag) => (
+                  <option key={ag} value={ag}>{ag}</option>
+                ))}
+              </select>
+            )}
             <input
               type="text"
               value={newText}
@@ -355,37 +409,9 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
         )}
       </div>
 
-      {/* Filter and Select Mode */}
+      {/* Select Mode */}
       <div className="rounded-xl shadow-sm border p-4 mb-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4 flex-wrap">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter:</span>
-            <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => setFilterLevel('all')}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
-                  filterLevel === 'all'
-                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                All
-              </button>
-              {levels.map((level) => (
-                <button
-                  key={level}
-                  onClick={() => setFilterLevel(level)}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
-                    filterLevel === level
-                      ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {level}
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="flex items-center justify-end gap-4 flex-wrap">
           <button
             onClick={toggleSelectMode}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -415,26 +441,28 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
               </button>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-red-900">Move to:</label>
-                <select
-                  value={bulkLevel}
-                  onChange={(e) => setBulkLevel(e.target.value as Level)}
-                  className="px-3 py-1 rounded-lg border border-red-300 bg-white text-gray-900 text-sm"
-                  disabled={bulkOperating}
-                >
-                  {levels.map((level) => (
-                    <option key={level} value={level}>{level}</option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleBulkChangeLevel}
-                  disabled={bulkOperating}
-                  className="px-4 py-1 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-sm font-medium"
-                >
-                  {bulkOperating ? 'Moving...' : 'Move'}
-                </button>
-              </div>
+              {isPractice && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-red-900">Move to:</label>
+                  <select
+                    value={bulkLevel}
+                    onChange={(e) => setBulkLevel(e.target.value as Level)}
+                    className="px-3 py-1 rounded-lg border border-red-300 bg-white text-gray-900 text-sm"
+                    disabled={bulkOperating}
+                  >
+                    {levels.map((level) => (
+                      <option key={level} value={level}>{level}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleBulkChangeLevel}
+                    disabled={bulkOperating}
+                    className="px-4 py-1 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-sm font-medium"
+                  >
+                    {bulkOperating ? 'Moving...' : 'Move'}
+                  </button>
+                </div>
+              )}
               <button
                 onClick={handleBulkDelete}
                 disabled={bulkOperating}
@@ -475,7 +503,7 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
                     />
                     <div className="flex-1">
                       <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 mr-3">
-                        {question.level}
+                        {isPractice ? question.level : question.age_group}
                       </span>
                       <span className="text-gray-900 dark:text-gray-100">{question.text}</span>
                       {(question.thumbs_up > 0 || question.thumbs_down > 0) && (
@@ -489,15 +517,27 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
                   </div>
                 ) : editingId === question.id ? (
                   <div className="flex gap-4 flex-wrap items-start">
-                    <select
-                      value={editLevel}
-                      onChange={(e) => setEditLevel(e.target.value as Level)}
-                      className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    >
-                      {levels.map((level) => (
-                        <option key={level} value={level}>{level}</option>
-                      ))}
-                    </select>
+                    {isPractice ? (
+                      <select
+                        value={editLevel}
+                        onChange={(e) => setEditLevel(e.target.value as Level)}
+                        className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      >
+                        {levels.map((level) => (
+                          <option key={level} value={level}>{level}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <select
+                        value={editAgeGroup}
+                        onChange={(e) => setEditAgeGroup(e.target.value as AgeGroup)}
+                        className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      >
+                        {ageGroupOptions.map((ag) => (
+                          <option key={ag} value={ag}>{ag}</option>
+                        ))}
+                      </select>
+                    )}
                     <input
                       type="text"
                       value={editText}
@@ -523,7 +563,7 @@ export default function QuestionsTab({ questions, loading, onRefresh, ageGroup, 
                   <div className="group flex justify-between items-start gap-4">
                     <div className="flex-1">
                       <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 mr-3">
-                        {question.level}
+                        {isPractice ? question.level : question.age_group}
                       </span>
                       <span className="text-gray-900 dark:text-gray-100">{question.text}</span>
                       {(question.thumbs_up > 0 || question.thumbs_down > 0) && (

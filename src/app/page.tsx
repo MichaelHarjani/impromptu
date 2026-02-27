@@ -4,7 +4,15 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTheme } from '@/lib/theme-context';
-import type { AgeGroup, GeneratedQuestion } from '@/lib/types';
+import type { Level, AgeGroup, QuestionBank, GeneratedQuestion } from '@/lib/types';
+
+const levels: { value: Level; label: string }[] = [
+  { value: 'L1', label: '1' },
+  { value: 'L2', label: '2' },
+  { value: 'L3', label: '3' },
+  { value: 'L4', label: '4' },
+  { value: 'L5', label: '5' },
+];
 
 const ageGroups: { value: AgeGroup; label: string }[] = [
   { value: '5-7', label: '5-7' },
@@ -32,6 +40,8 @@ const ThemeIcon = ({ mode }: { mode: 'system' | 'light' | 'dark' }) => {
 
 export default function Home() {
   const { mode, setMode } = useTheme();
+  const [selectedBank, setSelectedBank] = useState<QuestionBank>('practice');
+  const [selectedLevel, setSelectedLevel] = useState<Level>('L1');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<AgeGroup>('8-11');
   const [numberInput, setNumberInput] = useState('');
   const [question, setQuestion] = useState<GeneratedQuestion | null>(null);
@@ -105,7 +115,13 @@ export default function Home() {
     resetTimer();
 
     try {
-      const response = await fetch(`/api/questions/random?level=L1&number=${num}&ageGroup=${encodeURIComponent(selectedAgeGroup)}`);
+      const params = new URLSearchParams({ number: String(num), bank: selectedBank });
+      if (selectedBank === 'practice') {
+        params.set('level', selectedLevel);
+      } else {
+        params.set('ageGroup', selectedAgeGroup);
+      }
+      const response = await fetch(`/api/questions/random?${params}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -203,7 +219,7 @@ export default function Home() {
 
         {/* Subtitle */}
         <h1 className="text-lg md:text-xl font-medium tracking-wide mb-16 text-gray-600 dark:text-gray-400">
-          IMPROMPTU QUESTION COMPETITION 2026
+          {selectedBank === 'competition' ? 'IMPROMPTU QUESTION COMPETITION 2026' : 'IMPROMPTU QUESTION GENERATOR'}
         </h1>
 
         {/* Question Display */}
@@ -286,23 +302,74 @@ export default function Home() {
       {/* Fixed Bottom Controls */}
       <div className="fixed bottom-0 left-0 right-0 px-4 py-6 border-t bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800">
         <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-4">
-          {/* Age Group Selector */}
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-sm mr-1 text-gray-500 dark:text-gray-400">Age Group</span>
-            {ageGroups.map((ag) => (
+          {/* Mode Toggle + Selector */}
+          <div className="flex items-center justify-center gap-4">
+            {/* Practice / Competition toggle */}
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-full p-0.5">
               <button
-                key={ag.value}
                 type="button"
-                onClick={() => setSelectedAgeGroup(ag.value)}
-                className={`px-4 h-9 rounded-full text-sm font-medium transition-all ${
-                  selectedAgeGroup === ag.value
-                    ? 'bg-red-600 text-white'
+                onClick={() => setSelectedBank('practice')}
+                className={`px-3 h-8 rounded-full text-xs font-medium transition-all ${
+                  selectedBank === 'practice'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
                     : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
                 }`}
               >
-                {ag.label}
+                Practice
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => setSelectedBank('competition')}
+                className={`px-3 h-8 rounded-full text-xs font-medium transition-all ${
+                  selectedBank === 'competition'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                }`}
+              >
+                Competition
+              </button>
+            </div>
+
+            <div className="w-px h-5 bg-gray-300 dark:bg-gray-600" />
+
+            {/* Level selector (practice) or Age Group selector (competition) */}
+            {selectedBank === 'practice' ? (
+              <div className="flex items-center gap-1">
+                <span className="text-sm mr-1 text-gray-500 dark:text-gray-400">Level</span>
+                {levels.map((level) => (
+                  <button
+                    key={level.value}
+                    type="button"
+                    onClick={() => setSelectedLevel(level.value)}
+                    className={`w-8 h-8 rounded-full text-sm font-medium transition-all ${
+                      selectedLevel === level.value
+                        ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                    }`}
+                  >
+                    {level.label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <span className="text-sm mr-1 text-gray-500 dark:text-gray-400">Age</span>
+                {ageGroups.map((ag) => (
+                  <button
+                    key={ag.value}
+                    type="button"
+                    onClick={() => setSelectedAgeGroup(ag.value)}
+                    className={`px-3 h-8 rounded-full text-sm font-medium transition-all ${
+                      selectedAgeGroup === ag.value
+                        ? 'bg-red-600 text-white'
+                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                    }`}
+                  >
+                    {ag.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Number Input */}

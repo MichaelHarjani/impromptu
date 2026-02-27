@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { QuestionWithFeedback, AgeGroup, QuestionBank } from '@/lib/types';
+import type { Level, QuestionWithFeedback, AgeGroup, QuestionBank } from '@/lib/types';
 import AdminHeader from './components/AdminHeader';
 import QuestionsTab from './components/QuestionsTab';
 import TemplatesTab from './components/TemplatesTab';
@@ -14,7 +14,8 @@ import UsersTab from './components/UsersTab';
 
 type Tab = 'questions' | 'templates' | 'feedback' | 'users' | 'logs' | 'lucky-numbers' | 'settings';
 
-const ageGroups: AgeGroup[] = ['5-7', '8-11', '12+'];
+const levelOptions: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
+const ageGroupOptions: AgeGroup[] = ['5-7', '8-11', '12+'];
 const banks: { value: QuestionBank; label: string }[] = [
   { value: 'practice', label: 'Practice' },
   { value: 'competition', label: 'Competition' },
@@ -48,8 +49,9 @@ export default function AdminDashboard() {
   const [questions, setQuestions] = useState<QuestionWithFeedback[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(true);
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState<AgeGroup>('8-11');
   const [selectedBank, setSelectedBank] = useState<QuestionBank>('practice');
+  const [selectedLevel, setSelectedLevel] = useState<Level | 'all'>('all');
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState<AgeGroup | 'all'>('all');
 
   const checkSession = useCallback(async () => {
     try {
@@ -67,7 +69,13 @@ export default function AdminDashboard() {
 
   const fetchQuestions = useCallback(async () => {
     try {
-      const params = new URLSearchParams({ ageGroup: selectedAgeGroup, bank: selectedBank });
+      const params = new URLSearchParams({ bank: selectedBank });
+      if (selectedBank === 'practice' && selectedLevel !== 'all') {
+        params.set('level', selectedLevel);
+      }
+      if (selectedBank === 'competition' && selectedAgeGroup !== 'all') {
+        params.set('ageGroup', selectedAgeGroup);
+      }
       const response = await fetch(`/api/questions?${params}`);
       if (response.status === 401) { router.push('/access'); return; }
       const data = await response.json();
@@ -77,11 +85,17 @@ export default function AdminDashboard() {
     } finally {
       setQuestionsLoading(false);
     }
-  }, [router, selectedAgeGroup, selectedBank]);
+  }, [router, selectedBank, selectedLevel, selectedAgeGroup]);
 
   const fetchTemplates = useCallback(async () => {
     try {
-      const params = new URLSearchParams({ ageGroup: selectedAgeGroup, bank: selectedBank });
+      const params = new URLSearchParams({ bank: selectedBank });
+      if (selectedBank === 'practice' && selectedLevel !== 'all') {
+        params.set('level', selectedLevel);
+      }
+      if (selectedBank === 'competition' && selectedAgeGroup !== 'all') {
+        params.set('ageGroup', selectedAgeGroup);
+      }
       const response = await fetch(`/api/templates?${params}`);
       if (response.status === 401) { router.push('/access'); return; }
       const data = await response.json();
@@ -89,7 +103,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Failed to fetch templates:', error);
     }
-  }, [router, selectedAgeGroup, selectedBank]);
+  }, [router, selectedBank, selectedLevel, selectedAgeGroup]);
 
   useEffect(() => { checkSession(); }, [checkSession]);
 
@@ -134,28 +148,9 @@ export default function AdminDashboard() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <AdminHeader onLogout={handleLogout} />
 
-        {/* Age Group & Bank Switcher */}
+        {/* Bank Switcher + Level/Age Group Filter */}
         <div className="flex items-center justify-between gap-4 flex-wrap mb-6 rounded-xl shadow-sm border p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Age Group:</span>
-            <div className="flex gap-1">
-              {ageGroups.map((ag) => (
-                <button
-                  key={ag}
-                  onClick={() => setSelectedAgeGroup(ag)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                    selectedAgeGroup === ag
-                      ? 'bg-red-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {ag}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bank:</span>
             <div className="flex gap-1">
               {banks.map((b) => (
                 <button
@@ -171,6 +166,67 @@ export default function AdminDashboard() {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {selectedBank === 'practice' ? (
+              <>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Level:</span>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setSelectedLevel('all')}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      selectedLevel === 'all'
+                        ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    All
+                  </button>
+                  {levelOptions.map((l) => (
+                    <button
+                      key={l}
+                      onClick={() => setSelectedLevel(l)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                        selectedLevel === l
+                          ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Age Group:</span>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setSelectedAgeGroup('all')}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      selectedAgeGroup === 'all'
+                        ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    All
+                  </button>
+                  {ageGroupOptions.map((ag) => (
+                    <button
+                      key={ag}
+                      onClick={() => setSelectedAgeGroup(ag)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                        selectedAgeGroup === ag
+                          ? 'bg-red-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {ag}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -201,7 +257,6 @@ export default function AdminDashboard() {
             questions={questions}
             loading={questionsLoading}
             onRefresh={fetchQuestions}
-            ageGroup={selectedAgeGroup}
             bank={selectedBank}
           />
         )}
@@ -210,7 +265,6 @@ export default function AdminDashboard() {
           <TemplatesTab
             templates={templates}
             onRefresh={fetchTemplates}
-            ageGroup={selectedAgeGroup}
             bank={selectedBank}
           />
         )}

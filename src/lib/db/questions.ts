@@ -1,36 +1,44 @@
 import { getDb } from './index';
 import type { Level, AgeGroup, QuestionBank, Question, QuestionWithFeedback, QuestionTemplate, GeneratedQuestion } from '../types';
 
-export function getRandomQuestion(level: Level, ageGroup: AgeGroup = '8-11', bank: QuestionBank = 'practice'): GeneratedQuestion | null {
+export function getRandomQuestion(level?: Level, ageGroup?: AgeGroup, bank: QuestionBank = 'practice'): GeneratedQuestion | null {
   const db = getDb();
 
   const lockSetting = db.prepare('SELECT value FROM settings WHERE key = ?').get('lock_duration_minutes') as { value: string } | undefined;
   const lockMinutes = parseInt(lockSetting?.value || '30', 10);
 
-  if (level === 'L3' || level === 'L4') {
-    return getRandomTemplateQuestion(level, lockMinutes, ageGroup, bank);
+  // For practice mode with L3/L4, use template questions
+  if (bank === 'practice' && (level === 'L3' || level === 'L4')) {
+    return getRandomTemplateQuestion(level, lockMinutes, bank);
   }
+
+  // Build dynamic WHERE clause based on bank mode
+  const conditions: string[] = ['q.bank = ?'];
+  const params: (string | number)[] = [bank];
+
+  if (level) { conditions.push('q.level = ?'); params.push(level); }
+  if (ageGroup) { conditions.push('q.age_group = ?'); params.push(ageGroup); }
+
+  const where = conditions.join(' AND ');
 
   const question = db.prepare(`
     SELECT q.* FROM questions q
-    WHERE q.level = ?
-    AND q.age_group = ?
-    AND q.bank = ?
+    WHERE ${where}
     AND q.id NOT IN (
       SELECT question_id FROM question_history
       WHERE shown_at > datetime('now', '-' || ? || ' minutes')
     )
     ORDER BY RANDOM()
     LIMIT 1
-  `).get(level, ageGroup, bank, lockMinutes) as Question | undefined;
+  `).get(...params, lockMinutes) as Question | undefined;
 
   if (!question) {
     const fallback = db.prepare(`
       SELECT * FROM questions
-      WHERE level = ? AND age_group = ? AND bank = ?
+      WHERE ${where}
       ORDER BY RANDOM()
       LIMIT 1
-    `).get(level, ageGroup, bank) as Question | undefined;
+    `).get(...params) as Question | undefined;
 
     if (!fallback) return null;
     return { type: 'simple', id: fallback.id, text: fallback.text };
@@ -39,10 +47,10 @@ export function getRandomQuestion(level: Level, ageGroup: AgeGroup = '8-11', ban
   return { type: 'simple', id: question.id, text: question.text };
 }
 
-function getRandomTemplateQuestion(level: 'L3' | 'L4', lockMinutes: number, ageGroup: AgeGroup, bank: QuestionBank): GeneratedQuestion | null {
+function getRandomTemplateQuestion(level: 'L3' | 'L4', lockMinutes: number, bank: QuestionBank): GeneratedQuestion | null {
   const db = getDb();
 
-  const templates = db.prepare('SELECT * FROM question_templates WHERE level = ? AND age_group = ? AND bank = ?').all(level, ageGroup, bank) as QuestionTemplate[];
+  const templates = db.prepare('SELECT * FROM question_templates WHERE level = ? AND bank = ?').all(level, bank) as QuestionTemplate[];
   if (templates.length === 0) return null;
 
   const combinations: { template: QuestionTemplate; variable: string }[] = [];

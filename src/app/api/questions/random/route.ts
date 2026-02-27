@@ -3,10 +3,11 @@ import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import { SessionData, sessionOptions } from '@/lib/session';
 import { getRandomQuestion, recordQuestionShown, recordTemplateShown, recordNumberInput, recordUserActivity, Level } from '@/lib/db';
-import type { AgeGroup } from '@/lib/types';
+import type { AgeGroup, QuestionBank } from '@/lib/types';
 
 const validLevels: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
 const validAgeGroups: AgeGroup[] = ['5-7', '8-11', '12+'];
+const validBanks: QuestionBank[] = ['practice', 'competition'];
 
 function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
@@ -22,22 +23,33 @@ function getClientIp(request: NextRequest): string {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const level = searchParams.get('level') as Level;
+  const level = searchParams.get('level') as Level | null;
   const numberParam = searchParams.get('number');
-  const ageGroup = (searchParams.get('ageGroup') as AgeGroup) || '8-11';
+  const ageGroup = searchParams.get('ageGroup') as AgeGroup | null;
+  const bank = (searchParams.get('bank') as QuestionBank) || 'practice';
 
-  if (!level || !validLevels.includes(level)) {
+  if (!validBanks.includes(bank)) {
     return NextResponse.json(
-      { error: 'Invalid level. Must be one of: L1, L2, L3, L4, L5' },
+      { error: 'Invalid bank. Must be one of: practice, competition' },
       { status: 400 }
     );
   }
 
-  if (!validAgeGroups.includes(ageGroup)) {
-    return NextResponse.json(
-      { error: 'Invalid age group. Must be one of: 5-7, 8-11, 12+' },
-      { status: 400 }
-    );
+  // Practice mode requires a level, competition mode requires an age group
+  if (bank === 'practice') {
+    if (!level || !validLevels.includes(level)) {
+      return NextResponse.json(
+        { error: 'Invalid level. Must be one of: L1, L2, L3, L4, L5' },
+        { status: 400 }
+      );
+    }
+  } else {
+    if (!ageGroup || !validAgeGroups.includes(ageGroup)) {
+      return NextResponse.json(
+        { error: 'Invalid age group. Must be one of: 5-7, 8-11, 12+' },
+        { status: 400 }
+      );
+    }
   }
 
   // Record the number input if provided
@@ -45,11 +57,11 @@ export async function GET(request: NextRequest) {
     const number = parseInt(numberParam, 10);
     if (!isNaN(number) && number >= 0) {
       const ipAddress = getClientIp(request);
-      recordNumberInput(number, level, ipAddress);
+      recordNumberInput(number, level || 'L1', ipAddress);
     }
   }
 
-  const question = getRandomQuestion(level, ageGroup, 'practice');
+  const question = getRandomQuestion(level || undefined, ageGroup || undefined, bank);
 
   if (!question) {
     return NextResponse.json(
@@ -75,7 +87,7 @@ export async function GET(request: NextRequest) {
         question.type === 'simple' ? question.id : null,
         question.templateId || null,
         question.variableUsed || null,
-        level
+        level || 'L1'
       );
     }
   } catch {
