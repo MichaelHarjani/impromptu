@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
-import type { Level, AgeGroup, QuestionBank } from '../types';
+import type { Level } from '../types';
 
 export function initializeDb(database: Database.Database) {
   database.exec(`
