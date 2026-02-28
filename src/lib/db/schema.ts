@@ -159,6 +159,7 @@ export function initializeDb(database: Database.Database) {
     max_number: '1000',
     ip_whitelist: '[]',
     ip_whitelist_enabled: 'false',
+    active_bank: 'practice',
   };
 
   for (const [key, value] of Object.entries(defaults)) {

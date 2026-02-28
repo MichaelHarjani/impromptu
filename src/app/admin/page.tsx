@@ -67,6 +67,29 @@ export default function AdminDashboard() {
     }
   }, [router]);
 
+  // Load the active bank setting on mount
+  useEffect(() => {
+    fetch('/api/settings/public')
+      .then(res => res.json())
+      .then(data => {
+        if (data.active_bank) setSelectedBank(data.active_bank);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleBankChange = async (newBank: QuestionBank) => {
+    setSelectedBank(newBank);
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active_bank: newBank }),
+      });
+    } catch {
+      // Setting will still work locally even if persist fails
+    }
+  };
+
   const fetchQuestions = useCallback(async () => {
     try {
       const params = new URLSearchParams({ bank: selectedBank });
@@ -155,7 +178,7 @@ export default function AdminDashboard() {
               {banks.map((b) => (
                 <button
                   key={b.value}
-                  onClick={() => setSelectedBank(b.value)}
+                  onClick={() => handleBankChange(b.value)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                     selectedBank === b.value
                       ? 'bg-red-600 text-white'

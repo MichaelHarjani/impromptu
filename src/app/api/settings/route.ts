@@ -81,6 +81,16 @@ export async function PUT(request: NextRequest) {
       setIpWhitelist(ip_whitelist);
     }
 
+    if (body.active_bank !== undefined) {
+      if (!['practice', 'competition'].includes(body.active_bank)) {
+        return NextResponse.json(
+          { error: 'active_bank must be "practice" or "competition"' },
+          { status: 400 }
+        );
+      }
+      setSetting('active_bank', body.active_bank);
+    }
+
     if (ip_whitelist_enabled !== undefined) {
       if (typeof ip_whitelist_enabled !== 'boolean') {
         return NextResponse.json(
