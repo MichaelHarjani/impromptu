@@ -30,4 +30,5 @@ export * from './settings';
 export * from './auth';
 export * from './logs';
 export * from './users';
-export type { Level, AgeGroup, QuestionBank, Question, QuestionWithFeedback, QuestionTemplate, GeneratedQuestion, NumberInput, SiteAccessLog, EmailUser, UserActivity } from '../types';
+export * from './categories';
+export type { Level, AgeGroup, QuestionBank, Question, QuestionWithFeedback, QuestionTemplate, GeneratedQuestion, NumberInput, SiteAccessLog, EmailUser, UserActivity, L4Category } from '../types';

@@ -1,4 +1,4 @@
-export type Level = 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+export type Level = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
 export type AgeGroup = '5-7' | '8-11' | '12+';
 export type QuestionBank = 'practice' | 'competition';
 
@@ -24,6 +24,14 @@ export interface QuestionTemplate {
   pre_text: string;
   post_text: string;
   variables: string; // JSON array stored as string
+  created_at: string;
+}
+
+export interface L4Category {
+  id: number;
+  name: string;
+  bank: QuestionBank;
+  questions: string; // JSON array of 4 question strings
   created_at: string;
 }
 

@@ -6,7 +6,7 @@ export function initializeDb(database: Database.Database) {
   database.exec(`
     CREATE TABLE IF NOT EXISTS questions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5')),
+      level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5', 'L6')),
       text TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -64,7 +64,7 @@ export function initializeDb(database: Database.Database) {
     CREATE TABLE IF NOT EXISTS number_inputs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       number INTEGER NOT NULL,
-      level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5')),
+      level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5', 'L6')),
       ip_address TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -153,6 +153,53 @@ export function initializeDb(database: Database.Database) {
     )
   `);
 
+  // Migration: expand level CHECK constraint to include L6
+  // SQLite doesn't support ALTER CHECK, so we recreate the table
+  const questionsSchema = (database.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='questions'").get() as { sql: string } | undefined);
+  if (questionsSchema && !questionsSchema.sql.includes("'L6'")) {
+    database.exec(`
+      CREATE TABLE questions_v2 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5', 'L6')),
+        text TEXT NOT NULL,
+        age_group TEXT NOT NULL DEFAULT '8-11',
+        bank TEXT NOT NULL DEFAULT 'practice',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    database.exec('INSERT INTO questions_v2 (id, level, text, age_group, bank, created_at) SELECT id, level, text, age_group, bank, created_at FROM questions');
+    database.exec('DROP TABLE questions');
+    database.exec('ALTER TABLE questions_v2 RENAME TO questions');
+  }
+
+  // Migration: expand number_inputs level CHECK to include L6
+  const numberInputsSchema = (database.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='number_inputs'").get() as { sql: string } | undefined);
+  if (numberInputsSchema && !numberInputsSchema.sql.includes("'L6'")) {
+    database.exec(`
+      CREATE TABLE number_inputs_v2 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        number INTEGER NOT NULL,
+        level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5', 'L6')),
+        ip_address TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    database.exec('INSERT INTO number_inputs_v2 SELECT * FROM number_inputs');
+    database.exec('DROP TABLE number_inputs');
+    database.exec('ALTER TABLE number_inputs_v2 RENAME TO number_inputs');
+  }
+
+  // L4 categories table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS l4_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      bank TEXT NOT NULL DEFAULT 'practice',
+      questions TEXT NOT NULL DEFAULT '[]',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Set defaults if not exists
   const defaults: Record<string, string> = {
     lock_duration_minutes: '30',
@@ -238,6 +285,12 @@ const sampleQuestions: Record<Level, string[]> = {
     'What ethical frameworks should guide biotechnology research?',
     'Discuss the future of work in an automated world.',
     'How can democratic institutions adapt to technological change?',
+  ],
+  L6: [
+    'What is the most important quality a person can have?',
+    'If you could change one thing about the world, what would it be?',
+    'Describe a challenge you have overcome and what you learned from it.',
+    'What does success mean to you?',
   ],
 };
 

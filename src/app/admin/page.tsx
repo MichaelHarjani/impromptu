@@ -1,81 +1,76 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Level, QuestionWithFeedback, AgeGroup, QuestionBank } from '@/lib/types';
+import type { QuestionBank, QuestionWithFeedback } from '@/lib/types';
 import AdminHeader from './components/AdminHeader';
-import QuestionsTab from './components/QuestionsTab';
-import TemplatesTab from './components/TemplatesTab';
+import SimpleQuestionsLevel from './components/SimpleQuestionsLevel';
+import TemplatesLevel from './components/TemplatesLevel';
+import CategoriesLevel from './components/CategoriesLevel';
 import FeedbackTab from './components/FeedbackTab';
 import LogsTab from './components/LogsTab';
 import LuckyNumbersTab from './components/LuckyNumbersTab';
 import SettingsTab from './components/SettingsTab';
 import UsersTab from './components/UsersTab';
 
-type Tab = 'questions' | 'templates' | 'feedback' | 'users' | 'logs' | 'lucky-numbers' | 'settings';
+type LevelTab = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
+type UtilityTab = 'feedback' | 'users' | 'logs' | 'lucky-numbers' | 'settings';
+type Tab = LevelTab | UtilityTab;
 
-const levelOptions: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
-const ageGroupOptions: AgeGroup[] = ['5-7', '8-11', '12+'];
+const levelTabs: { value: LevelTab; label: string; description: string }[] = [
+  { value: 'L1', label: 'Level 1', description: 'Base questions' },
+  { value: 'L2', label: 'Level 2', description: 'Base questions' },
+  { value: 'L3', label: 'Level 3', description: 'Pre + Variable + Post' },
+  { value: 'L4', label: 'Level 4', description: 'Categories' },
+  { value: 'L5', label: 'Level 5', description: 'Base questions' },
+  { value: 'L6', label: 'Level 6', description: 'Base questions' },
+];
+
+const utilityTabs: { value: UtilityTab; label: string }[] = [
+  { value: 'feedback', label: 'Feedback' },
+  { value: 'users', label: 'Users' },
+  { value: 'logs', label: 'Logs' },
+  { value: 'lucky-numbers', label: 'Lucky Numbers' },
+  { value: 'settings', label: 'Settings' },
+];
+
 const banks: { value: QuestionBank; label: string }[] = [
   { value: 'practice', label: 'Practice' },
   { value: 'competition', label: 'Competition' },
 ];
 
-interface Template {
-  id: number;
-  level: 'L3' | 'L4';
-  age_group: AgeGroup;
-  bank: QuestionBank;
-  pre_text: string;
-  post_text: string;
-  variables: string;
-  created_at: string;
-}
-
-const tabs: { value: Tab; label: string }[] = [
-  { value: 'questions', label: 'Questions' },
-  { value: 'templates', label: 'Templates (L3/L4)' },
-  { value: 'feedback', label: 'Feedback Review' },
-  { value: 'users', label: 'Users' },
-  { value: 'logs', label: 'Access Logs' },
-  { value: 'lucky-numbers', label: 'Lucky Numbers' },
-  { value: 'settings', label: 'Settings' },
-];
-
 export default function AdminDashboard() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('questions');
-  const [questions, setQuestions] = useState<QuestionWithFeedback[]>([]);
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [questionsLoading, setQuestionsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<Tab>('L1');
   const [selectedBank, setSelectedBank] = useState<QuestionBank>('practice');
-  const [selectedLevel, setSelectedLevel] = useState<Level | 'all'>('all');
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState<AgeGroup | 'all'>('all');
 
-  const checkSession = useCallback(async () => {
-    try {
-      const response = await fetch('/api/auth/session');
-      const data = await response.json();
-      if (!data.isLoggedIn) {
-        router.push('/access');
-      } else {
-        setIsLoggedIn(true);
-      }
-    } catch {
-      router.push('/access');
-    }
-  }, [router]);
+  // For feedback tab - fetch all questions
+  const [questions, setQuestions] = useState<QuestionWithFeedback[]>([]);
 
-  // Load the active bank setting on mount
   useEffect(() => {
-    fetch('/api/settings/public')
-      .then(res => res.json())
-      .then(data => {
-        if (data.active_bank) setSelectedBank(data.active_bank);
-      })
-      .catch(() => {});
-  }, []);
+    let cancelled = false;
+    async function init() {
+      try {
+        const [sessionRes, settingsRes] = await Promise.all([
+          fetch('/api/auth/session'),
+          fetch('/api/settings/public'),
+        ]);
+        const sessionData = await sessionRes.json();
+        if (!sessionData.isLoggedIn) {
+          router.push('/access');
+          return;
+        }
+        if (!cancelled) setIsLoggedIn(true);
+        const settingsData = await settingsRes.json();
+        if (!cancelled && settingsData.active_bank) setSelectedBank(settingsData.active_bank);
+      } catch {
+        router.push('/access');
+      }
+    }
+    init();
+    return () => { cancelled = true; };
+  }, [router]);
 
   const handleBankChange = async (newBank: QuestionBank) => {
     setSelectedBank(newBank);
@@ -86,77 +81,52 @@ export default function AdminDashboard() {
         body: JSON.stringify({ active_bank: newBank }),
       });
     } catch {
-      // Setting will still work locally even if persist fails
+      // Setting will still work locally
     }
   };
 
-  const fetchQuestions = useCallback(async () => {
-    try {
-      const params = new URLSearchParams({ bank: selectedBank });
-      if (selectedBank === 'practice' && selectedLevel !== 'all') {
-        params.set('level', selectedLevel);
-      }
-      if (selectedBank === 'competition' && selectedAgeGroup !== 'all') {
-        params.set('ageGroup', selectedAgeGroup);
-      }
-      const response = await fetch(`/api/questions?${params}`);
-      if (response.status === 401) { router.push('/access'); return; }
-      const data = await response.json();
-      setQuestions(data);
-    } catch (error) {
-      console.error('Failed to fetch questions:', error);
-    } finally {
-      setQuestionsLoading(false);
-    }
-  }, [router, selectedBank, selectedLevel, selectedAgeGroup]);
-
-  const fetchTemplates = useCallback(async () => {
-    try {
-      const params = new URLSearchParams({ bank: selectedBank });
-      if (selectedBank === 'practice' && selectedLevel !== 'all') {
-        params.set('level', selectedLevel);
-      }
-      if (selectedBank === 'competition' && selectedAgeGroup !== 'all') {
-        params.set('ageGroup', selectedAgeGroup);
-      }
-      const response = await fetch(`/api/templates?${params}`);
-      if (response.status === 401) { router.push('/access'); return; }
-      const data = await response.json();
-      setTemplates(data);
-    } catch (error) {
-      console.error('Failed to fetch templates:', error);
-    }
-  }, [router, selectedBank, selectedLevel, selectedAgeGroup]);
-
-  useEffect(() => { checkSession(); }, [checkSession]);
-
   useEffect(() => {
-    if (isLoggedIn) {
-      fetchQuestions();
-      fetchTemplates();
+    if (!isLoggedIn || activeTab !== 'feedback') return;
+    let cancelled = false;
+    async function load() {
+      try {
+        const params = new URLSearchParams({ bank: selectedBank });
+        const response = await fetch(`/api/questions?${params}`);
+        if (response.ok && !cancelled) {
+          setQuestions(await response.json());
+        }
+      } catch (error) {
+        console.error('Failed to fetch questions:', error);
+      }
     }
-  }, [isLoggedIn, fetchQuestions, fetchTemplates]);
+    load();
+    return () => { cancelled = true; };
+  }, [isLoggedIn, activeTab, selectedBank]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/access');
   };
 
-  const handleEditFromFeedback = () => {
-    setActiveTab('questions');
-  };
-
   const handleDeleteQuestion = async (id: number) => {
     if (!confirm('Are you sure you want to delete this question?')) return;
     try {
       const response = await fetch(`/api/questions/${id}`, { method: 'DELETE' });
-      if (response.ok) fetchQuestions();
+      if (response.ok) {
+        // Re-fetch questions for feedback tab
+        const params = new URLSearchParams({ bank: selectedBank });
+        const res = await fetch(`/api/questions?${params}`);
+        if (res.ok) setQuestions(await res.json());
+      }
     } catch (error) {
       console.error('Failed to delete question:', error);
     }
   };
 
   const feedbackCount = questions.filter(q => q.thumbs_up > 0 || q.thumbs_down > 0).length;
+
+  const isLevelTab = (tab: Tab): tab is LevelTab =>
+    ['L1', 'L2', 'L3', 'L4', 'L5', 'L6'].includes(tab);
 
   if (!isLoggedIn) {
     return (
@@ -171,91 +141,28 @@ export default function AdminDashboard() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <AdminHeader onLogout={handleLogout} />
 
-        {/* Bank Switcher + Level/Age Group Filter */}
-        <div className="flex items-center justify-between gap-4 flex-wrap mb-6 rounded-xl shadow-sm border p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <div className="flex gap-1">
-              {banks.map((b) => (
-                <button
-                  key={b.value}
-                  onClick={() => handleBankChange(b.value)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                    selectedBank === b.value
-                      ? 'bg-red-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {b.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {selectedBank === 'practice' ? (
-              <>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Level:</span>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setSelectedLevel('all')}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                      selectedLevel === 'all'
-                        ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    All
-                  </button>
-                  {levelOptions.map((l) => (
-                    <button
-                      key={l}
-                      onClick={() => setSelectedLevel(l)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                        selectedLevel === l
-                          ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      {l}
-                    </button>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Age Group:</span>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setSelectedAgeGroup('all')}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                      selectedAgeGroup === 'all'
-                        ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    All
-                  </button>
-                  {ageGroupOptions.map((ag) => (
-                    <button
-                      key={ag}
-                      onClick={() => setSelectedAgeGroup(ag)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                        selectedAgeGroup === ag
-                          ? 'bg-red-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      {ag}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+        {/* Bank Switcher */}
+        <div className="flex items-center gap-4 mb-6 rounded-xl shadow-sm border p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <div className="flex gap-1">
+            {banks.map((b) => (
+              <button
+                key={b.value}
+                onClick={() => handleBankChange(b.value)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  selectedBank === b.value
+                    ? 'bg-red-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                {b.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 border-b border-gray-200 dark:border-gray-700">
-          {tabs.map((tab) => (
+        {/* Level Tabs */}
+        <div className="flex gap-1 mb-2 border-b border-gray-200 dark:border-gray-700">
+          {levelTabs.map((tab) => (
             <button
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
@@ -266,8 +173,25 @@ export default function AdminDashboard() {
               }`}
             >
               {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Utility Tabs */}
+        <div className="flex gap-1 mb-6 border-b border-gray-200 dark:border-gray-700">
+          {utilityTabs.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              className={`px-3 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors ${
+                activeTab === tab.value
+                  ? 'border-red-600 text-red-600'
+                  : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+              }`}
+            >
+              {tab.label}
               {tab.value === 'feedback' && feedbackCount > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700">
+                <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700">
                   {feedbackCount}
                 </span>
               )}
@@ -275,31 +199,29 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {activeTab === 'questions' && (
-          <QuestionsTab
-            questions={questions}
-            loading={questionsLoading}
-            onRefresh={fetchQuestions}
-            bank={selectedBank}
-          />
+        {/* Level description */}
+        {isLevelTab(activeTab) && (
+          <div className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+            {levelTabs.find(t => t.value === activeTab)?.description}
+          </div>
         )}
 
-        {activeTab === 'templates' && (
-          <TemplatesTab
-            templates={templates}
-            onRefresh={fetchTemplates}
-            bank={selectedBank}
-          />
-        )}
+        {/* Level Content */}
+        {activeTab === 'L1' && <SimpleQuestionsLevel level="L1" bank={selectedBank} />}
+        {activeTab === 'L2' && <SimpleQuestionsLevel level="L2" bank={selectedBank} />}
+        {activeTab === 'L3' && <TemplatesLevel bank={selectedBank} />}
+        {activeTab === 'L4' && <CategoriesLevel bank={selectedBank} />}
+        {activeTab === 'L5' && <SimpleQuestionsLevel level="L5" bank={selectedBank} />}
+        {activeTab === 'L6' && <SimpleQuestionsLevel level="L6" bank={selectedBank} />}
 
+        {/* Utility Content */}
         {activeTab === 'feedback' && (
           <FeedbackTab
             questions={questions}
-            onEditQuestion={handleEditFromFeedback}
+            onEditQuestion={() => setActiveTab('L1')}
             onDeleteQuestion={handleDeleteQuestion}
           />
         )}
-
         {activeTab === 'users' && <UsersTab isActive={activeTab === 'users'} />}
         {activeTab === 'logs' && <LogsTab isActive={activeTab === 'logs'} />}
         {activeTab === 'lucky-numbers' && <LuckyNumbersTab isActive={activeTab === 'lucky-numbers'} />}

@@ -5,7 +5,7 @@ import { getAllQuestionsWithFeedback, createQuestion, Level } from '@/lib/db';
 import type { AgeGroup, QuestionBank } from '@/lib/types';
 import { SessionData, sessionOptions } from '@/lib/session';
 
-const validLevels: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
+const validLevels: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6'];
 const validAgeGroups: AgeGroup[] = ['5-7', '8-11', '12+'];
 const validBanks: QuestionBank[] = ['practice', 'competition'];
 

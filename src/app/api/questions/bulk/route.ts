@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { bulkUpdateQuestionLevel, bulkDeleteQuestions, Level } from '@/lib/db';
 import { SessionData, sessionOptions } from '@/lib/session';
 
-const validLevels: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
+const validLevels: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6'];
 
 async function getSession() {
   return getIronSession<SessionData>(await cookies(), sessionOptions);

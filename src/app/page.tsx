@@ -12,6 +12,7 @@ const levels: { value: Level; label: string }[] = [
   { value: 'L3', label: '3' },
   { value: 'L4', label: '4' },
   { value: 'L5', label: '5' },
+  { value: 'L6', label: '6' },
 ];
 
 const ageGroups: { value: AgeGroup; label: string }[] = [
