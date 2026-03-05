@@ -189,16 +189,23 @@ export function initializeDb(database: Database.Database) {
     database.exec('ALTER TABLE number_inputs_v2 RENAME TO number_inputs');
   }
 
-  // L4 categories table
+  // L4 activities table
   database.exec(`
-    CREATE TABLE IF NOT EXISTS l4_categories (
+    CREATE TABLE IF NOT EXISTS l4_activities (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       bank TEXT NOT NULL DEFAULT 'practice',
-      questions TEXT NOT NULL DEFAULT '[]',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Migration: rename l4_categories to l4_activities if old table exists
+  const hasOldCategories = database.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='l4_categories'"
+  ).get();
+  if (hasOldCategories) {
+    database.exec('DROP TABLE l4_categories');
+  }
 
   // Set defaults if not exists
   const defaults: Record<string, string> = {

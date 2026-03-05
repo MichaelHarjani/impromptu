@@ -27,11 +27,10 @@ export interface QuestionTemplate {
   created_at: string;
 }
 
-export interface L4Category {
+export interface L4Activity {
   id: number;
   name: string;
   bank: QuestionBank;
-  questions: string; // JSON array of 4 question strings
   created_at: string;
 }
 

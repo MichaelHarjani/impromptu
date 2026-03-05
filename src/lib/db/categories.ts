@@ -1,42 +1,44 @@
 import { getDb } from './index';
-import type { QuestionBank, L4Category } from '../types';
+import type { QuestionBank, L4Activity } from '../types';
 
-export function getAllCategories(bank?: QuestionBank): L4Category[] {
+export function getAllActivities(bank?: QuestionBank): L4Activity[] {
   const db = getDb();
   if (bank) {
-    return db.prepare('SELECT * FROM l4_categories WHERE bank = ? ORDER BY name, id').all(bank) as L4Category[];
+    return db.prepare('SELECT * FROM l4_activities WHERE bank = ? ORDER BY name, id').all(bank) as L4Activity[];
   }
-  return db.prepare('SELECT * FROM l4_categories ORDER BY name, id').all() as L4Category[];
+  return db.prepare('SELECT * FROM l4_activities ORDER BY name, id').all() as L4Activity[];
 }
 
-export function getCategory(id: number): L4Category | null {
+export function createActivity(name: string, bank: QuestionBank = 'practice'): L4Activity {
   const db = getDb();
-  return (db.prepare('SELECT * FROM l4_categories WHERE id = ?').get(id) as L4Category) || null;
+  const result = db.prepare('INSERT INTO l4_activities (name, bank) VALUES (?, ?)').run(name, bank);
+  return db.prepare('SELECT * FROM l4_activities WHERE id = ?').get(result.lastInsertRowid) as L4Activity;
 }
 
-export function createCategory(name: string, questions: string[], bank: QuestionBank = 'practice'): L4Category {
+export function updateActivity(id: number, name: string, bank?: QuestionBank): L4Activity | null {
   const db = getDb();
-  const result = db.prepare('INSERT INTO l4_categories (name, questions, bank) VALUES (?, ?, ?)').run(
-    name,
-    JSON.stringify(questions),
-    bank
-  );
-  return db.prepare('SELECT * FROM l4_categories WHERE id = ?').get(result.lastInsertRowid) as L4Category;
-}
-
-export function updateCategory(id: number, name: string, questions: string[], bank?: QuestionBank): L4Category | null {
-  const db = getDb();
-  const sets: string[] = ['name = ?', 'questions = ?'];
-  const params: (string | number)[] = [name, JSON.stringify(questions)];
+  const sets: string[] = ['name = ?'];
+  const params: (string | number)[] = [name];
   if (bank) { sets.push('bank = ?'); params.push(bank); }
   params.push(id);
-  const result = db.prepare(`UPDATE l4_categories SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+  const result = db.prepare(`UPDATE l4_activities SET ${sets.join(', ')} WHERE id = ?`).run(...params);
   if (result.changes === 0) return null;
-  return db.prepare('SELECT * FROM l4_categories WHERE id = ?').get(id) as L4Category;
+  return db.prepare('SELECT * FROM l4_activities WHERE id = ?').get(id) as L4Activity;
 }
 
-export function deleteCategory(id: number): boolean {
+export function deleteActivity(id: number): boolean {
   const db = getDb();
-  const result = db.prepare('DELETE FROM l4_categories WHERE id = ?').run(id);
+  const result = db.prepare('DELETE FROM l4_activities WHERE id = ?').run(id);
   return result.changes > 0;
+}
+
+export function bulkCreateActivities(names: string[], bank: QuestionBank = 'practice'): void {
+  const db = getDb();
+  const insert = db.prepare('INSERT INTO l4_activities (name, bank) VALUES (?, ?)');
+  const transaction = db.transaction((items: string[]) => {
+    for (const name of items) {
+      insert.run(name.trim(), bank);
+    }
+  });
+  transaction(names);
 }

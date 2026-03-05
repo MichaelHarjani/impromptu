@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
-import { updateCategory, deleteCategory } from '@/lib/db';
+import { updateActivity, deleteActivity } from '@/lib/db';
 import type { QuestionBank } from '@/lib/types';
 import { SessionData, sessionOptions } from '@/lib/session';
 
@@ -20,25 +20,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   try {
     const body = await request.json();
-    const { name, questions, bank } = body;
+    const { name, bank } = body;
 
     if (!name || typeof name !== 'string' || !name.trim()) {
-      return NextResponse.json({ error: 'Category name is required' }, { status: 400 });
-    }
-
-    if (!Array.isArray(questions) || questions.length !== 4) {
-      return NextResponse.json({ error: 'Exactly 4 questions are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Activity name is required' }, { status: 400 });
     }
 
     if (bank && !validBanks.includes(bank)) {
       return NextResponse.json({ error: 'Invalid bank' }, { status: 400 });
     }
 
-    const category = updateCategory(parseInt(id), name.trim(), questions, bank);
-    if (!category) {
-      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    const activity = updateActivity(parseInt(id), name.trim(), bank);
+    if (!activity) {
+      return NextResponse.json({ error: 'Activity not found' }, { status: 404 });
     }
-    return NextResponse.json(category);
+    return NextResponse.json(activity);
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -51,9 +47,9 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   }
 
   const { id } = await params;
-  const deleted = deleteCategory(parseInt(id));
+  const deleted = deleteActivity(parseInt(id));
   if (!deleted) {
-    return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Activity not found' }, { status: 404 });
   }
   return NextResponse.json({ success: true });
 }
