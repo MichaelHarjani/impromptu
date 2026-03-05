@@ -19,12 +19,14 @@ export async function GET() {
   const maxNumber = getSetting('max_number') || '1000';
   const ipWhitelist = getIpWhitelist();
   const ipWhitelistEnabled = isIpWhitelistEnabled();
+  const timerSettings = getSetting('timer_settings');
 
   return NextResponse.json({
     lock_duration_minutes: parseInt(lockDuration, 10),
     max_number: parseInt(maxNumber, 10),
     ip_whitelist: ipWhitelist,
     ip_whitelist_enabled: ipWhitelistEnabled,
+    timer_settings: timerSettings ? JSON.parse(timerSettings) : null,
   });
 }
 
@@ -99,6 +101,10 @@ export async function PUT(request: NextRequest) {
         );
       }
       setIpWhitelistEnabled(ip_whitelist_enabled);
+    }
+
+    if (body.timer_settings !== undefined) {
+      setSetting('timer_settings', JSON.stringify(body.timer_settings));
     }
 
     return NextResponse.json({ success: true });

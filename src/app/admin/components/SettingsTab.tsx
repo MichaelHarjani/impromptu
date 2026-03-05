@@ -9,12 +9,15 @@ interface SettingsTabProps {
 export default function SettingsTab({ isActive }: SettingsTabProps) {
   const [lockDuration, setLockDuration] = useState(30);
   const [maxNumber, setMaxNumber] = useState(1000);
+  const [defaultYellow, setDefaultYellow] = useState(60);
+  const [defaultRed, setDefaultRed] = useState(90);
   const [savingSettings, setSavingSettings] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [sitePassword, setSitePassword] = useState('');
   const [ipWhitelist, setIpWhitelist] = useState<string[]>([]);
   const [ipWhitelistEnabled, setIpWhitelistEnabled] = useState(false);
   const [newIpAddress, setNewIpAddress] = useState('');
+  const [timerSettings, setTimerSettings] = useState<Record<string, unknown> | null>(null);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -25,6 +28,11 @@ export default function SettingsTab({ isActive }: SettingsTabProps) {
         setMaxNumber(data.max_number || 1000);
         setIpWhitelist(data.ip_whitelist || []);
         setIpWhitelistEnabled(data.ip_whitelist_enabled || false);
+        if (data.timer_settings) {
+          setTimerSettings(data.timer_settings);
+          setDefaultYellow(data.timer_settings.default_yellow ?? 60);
+          setDefaultRed(data.timer_settings.default_red ?? 90);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch settings:', error);
@@ -38,11 +46,17 @@ export default function SettingsTab({ isActive }: SettingsTabProps) {
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
+      const updatedTimerSettings = {
+        ...(timerSettings || {}),
+        default_yellow: defaultYellow,
+        default_red: defaultRed,
+      };
       const body: Record<string, unknown> = {
         lock_duration_minutes: lockDuration,
         max_number: maxNumber,
         ip_whitelist: ipWhitelist,
         ip_whitelist_enabled: ipWhitelistEnabled,
+        timer_settings: updatedTimerSettings,
       };
       if (sitePassword) body.site_password = sitePassword;
 
@@ -138,6 +152,43 @@ export default function SettingsTab({ isActive }: SettingsTabProps) {
           <p className="text-xs mt-2 text-gray-400 dark:text-gray-500">
             Default: 1000. Range: 1 to 10000.
           </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            Default Timer Thresholds
+          </label>
+          <p className="text-sm mb-3 text-gray-500 dark:text-gray-400">
+            Default times for the yellow and red background warnings. Individual levels can override these.
+          </p>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Yellow at</span>
+              <input
+                type="number"
+                value={defaultYellow}
+                onChange={(e) => setDefaultYellow(parseInt(e.target.value) || 0)}
+                min="0"
+                max="600"
+                className="w-20 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center"
+              />
+              <span className="text-sm text-gray-600 dark:text-gray-400">seconds</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-red-500"></span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Red at</span>
+              <input
+                type="number"
+                value={defaultRed}
+                onChange={(e) => setDefaultRed(parseInt(e.target.value) || 0)}
+                min="0"
+                max="600"
+                className="w-20 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center"
+              />
+              <span className="text-sm text-gray-600 dark:text-gray-400">seconds</span>
+            </div>
+          </div>
         </div>
 
         {/* Site Security Section */}

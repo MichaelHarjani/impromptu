@@ -12,6 +12,7 @@ import LogsTab from './components/LogsTab';
 import LuckyNumbersTab from './components/LuckyNumbersTab';
 import SettingsTab from './components/SettingsTab';
 import UsersTab from './components/UsersTab';
+import LevelTimerSettings from './components/LevelTimerSettings';
 
 type LevelTab = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
 type UtilityTab = 'feedback' | 'users' | 'logs' | 'lucky-numbers' | 'settings';
@@ -206,7 +207,8 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Level Content */}
+        {/* Level Timer + Content */}
+        {isLevelTab(activeTab) && <LevelTimerSettings level={activeTab} />}
         {activeTab === 'L1' && <SimpleQuestionsLevel level="L1" bank={selectedBank} />}
         {activeTab === 'L2' && <SimpleQuestionsLevel level="L2" bank={selectedBank} />}
         {activeTab === 'L3' && <TemplatesLevel bank={selectedBank} />}

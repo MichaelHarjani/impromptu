@@ -54,6 +54,11 @@ export default function Home() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [timerFinished, setTimerFinished] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [timerSettings, setTimerSettings] = useState<{
+    default_yellow: number;
+    default_red: number;
+    levels: Record<string, { use_default: boolean; yellow?: number; red?: number }>;
+  } | null>(null);
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
@@ -95,6 +100,7 @@ export default function Home() {
       .then(data => {
         if (data.max_number) setMaxNumber(data.max_number);
         if (data.active_bank) setActiveBank(data.active_bank);
+        if (data.timer_settings) setTimerSettings(data.timer_settings);
       })
       .catch(() => {});
   }, []);
@@ -169,13 +175,27 @@ export default function Home() {
     fetchQuestion();
   };
 
+  const handleLevelChange = (level: Level) => {
+    setSelectedLevel(level);
+    setQuestion(null);
+    setVoted(null);
+    setError(null);
+    resetTimer();
+  };
+
   const cycleTheme = () => {
     const next = mode === 'system' ? 'light' : mode === 'light' ? 'dark' : 'system';
     setMode(next);
   };
 
-  const yellowThreshold = selectedLevel === 'L6' ? 30 : 60;
-  const redThreshold = selectedLevel === 'L6' ? 45 : 90;
+  // Compute timer thresholds from settings
+  const levelTimerConfig = timerSettings?.levels?.[selectedLevel];
+  const yellowThreshold = levelTimerConfig && !levelTimerConfig.use_default && levelTimerConfig.yellow !== undefined
+    ? levelTimerConfig.yellow
+    : timerSettings?.default_yellow ?? 60;
+  const redThreshold = levelTimerConfig && !levelTimerConfig.use_default && levelTimerConfig.red !== undefined
+    ? levelTimerConfig.red
+    : timerSettings?.default_red ?? 90;
 
   const timerActive = timerRunning || timerFinished;
   const isRed = timerActive && elapsedSeconds >= redThreshold;
@@ -328,7 +348,7 @@ export default function Home() {
                 <button
                   key={level.value}
                   type="button"
-                  onClick={() => setSelectedLevel(level.value)}
+                  onClick={() => handleLevelChange(level.value)}
                   className={`w-8 h-8 rounded-full text-sm font-medium transition-all ${
                     selectedLevel === level.value
                       ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'

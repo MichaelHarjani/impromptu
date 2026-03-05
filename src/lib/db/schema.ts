@@ -214,6 +214,18 @@ export function initializeDb(database: Database.Database) {
     ip_whitelist: '[]',
     ip_whitelist_enabled: 'false',
     active_bank: 'practice',
+    timer_settings: JSON.stringify({
+      default_yellow: 60,
+      default_red: 90,
+      levels: {
+        L1: { use_default: true },
+        L2: { use_default: true },
+        L3: { use_default: true },
+        L4: { use_default: true },
+        L5: { use_default: true },
+        L6: { use_default: false, yellow: 30, red: 45 },
+      },
+    }),
   };
 
   for (const [key, value] of Object.entries(defaults)) {
