@@ -174,16 +174,27 @@ export default function Home() {
     setMode(next);
   };
 
-  const questionBgClass = timerRunning || timerFinished
-    ? elapsedSeconds >= 90
-      ? 'bg-red-500/50 dark:bg-red-900/50'
-      : elapsedSeconds >= 60
-        ? 'bg-yellow-300 dark:bg-yellow-600/50'
-        : 'bg-gray-50 dark:bg-gray-800'
-    : 'bg-gray-50 dark:bg-gray-800';
+  const yellowThreshold = selectedLevel === 'L6' ? 30 : 60;
+  const redThreshold = selectedLevel === 'L6' ? 45 : 90;
+
+  const timerActive = timerRunning || timerFinished;
+  const isRed = timerActive && elapsedSeconds >= redThreshold;
+  const isYellow = timerActive && elapsedSeconds >= yellowThreshold && !isRed;
+
+  const pageBgClass = isRed
+    ? 'bg-red-500 dark:bg-red-800'
+    : isYellow
+      ? 'bg-yellow-300 dark:bg-yellow-600'
+      : 'bg-white dark:bg-gray-900';
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
+    <div className={`min-h-screen flex flex-col transition-colors duration-500 ${pageBgClass}`}>
       {/* Admin Link - Top Left */}
       <div className="fixed top-4 left-4 z-50">
         <Link
@@ -229,7 +240,7 @@ export default function Home() {
           {question ? (
             <div>
               <div className="flex">
-                <div className={`flex-1 border-l-4 border-red-600 p-8 rounded-r-lg transition-colors duration-500 ${questionBgClass}`}>
+                <div className="flex-1 border-l-4 border-red-600 p-8 rounded-r-lg bg-gray-50 dark:bg-gray-800">
                   <p className="text-2xl md:text-4xl font-medium leading-relaxed text-gray-900 dark:text-gray-100">
                     {question.text}
                   </p>
@@ -288,6 +299,11 @@ export default function Home() {
                   >
                     End
                   </button>
+                )}
+                {timerFinished && (
+                  <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {formatTime(elapsedSeconds)}
+                  </span>
                 )}
               </div>
             </div>
