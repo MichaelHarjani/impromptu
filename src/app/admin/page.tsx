@@ -19,12 +19,12 @@ type UtilityTab = 'feedback' | 'users' | 'logs' | 'lucky-numbers' | 'settings';
 type Tab = LevelTab | UtilityTab;
 
 const levelTabs: { value: LevelTab; label: string; description: string }[] = [
-  { value: 'L1', label: 'Level 1', description: 'Base questions' },
-  { value: 'L2', label: 'Level 2', description: 'Base questions' },
-  { value: 'L3', label: 'Level 3', description: 'Pre + Variable + Post' },
-  { value: 'L4', label: 'Level 4', description: 'Categories' },
-  { value: 'L5', label: 'Level 5', description: 'Base questions' },
-  { value: 'L6', label: 'Level 6', description: 'Base questions' },
+  { value: 'L1', label: 'Level 1', description: 'All About Me' },
+  { value: 'L2', label: 'Level 2', description: 'Imagine That' },
+  { value: 'L3', label: 'Level 3', description: 'Pick a Side' },
+  { value: 'L4', label: 'Level 4', description: 'This or That' },
+  { value: 'L5', label: 'Level 5', description: 'Think Critically' },
+  { value: 'L6', label: 'Level 6', description: 'University Admission' },
 ];
 
 const utilityTabs: { value: UtilityTab; label: string }[] = [

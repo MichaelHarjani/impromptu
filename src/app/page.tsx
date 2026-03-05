@@ -6,13 +6,13 @@ import Image from 'next/image';
 import { useTheme } from '@/lib/theme-context';
 import type { Level, AgeGroup, QuestionBank, GeneratedQuestion } from '@/lib/types';
 
-const levels: { value: Level; label: string }[] = [
-  { value: 'L1', label: '1' },
-  { value: 'L2', label: '2' },
-  { value: 'L3', label: '3' },
-  { value: 'L4', label: '4' },
-  { value: 'L5', label: '5' },
-  { value: 'L6', label: '6' },
+const levels: { value: Level; label: string; name: string }[] = [
+  { value: 'L1', label: '1', name: 'All About Me' },
+  { value: 'L2', label: '2', name: 'Imagine That' },
+  { value: 'L3', label: '3', name: 'Pick a Side' },
+  { value: 'L4', label: '4', name: 'This or That' },
+  { value: 'L5', label: '5', name: 'Think Critically' },
+  { value: 'L6', label: '6', name: 'University Admission' },
 ];
 
 const ageGroups: { value: AgeGroup; label: string }[] = [
@@ -251,9 +251,15 @@ export default function Home() {
         </div>
 
         {/* Subtitle */}
-        <h1 className="text-lg md:text-xl font-medium tracking-wide mb-16 text-gray-600 dark:text-gray-400">
+        <h1 className="text-lg md:text-xl font-medium tracking-wide text-gray-600 dark:text-gray-400">
           {activeBank === 'competition' ? 'IMPROMPTU QUESTION COMPETITION 2026' : 'IMPROMPTU QUESTION GENERATOR'}
         </h1>
+        {activeBank === 'practice' && (
+          <p className="mt-2 mb-14 text-sm text-gray-400 dark:text-gray-500">
+            Level {selectedLevel.replace('L', '')} — {levels.find(l => l.value === selectedLevel)?.name}
+          </p>
+        )}
+        {activeBank !== 'practice' && <div className="mb-16" />}
 
         {/* Question Display */}
         <div className="w-full max-w-3xl">
