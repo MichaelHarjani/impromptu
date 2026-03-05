@@ -237,25 +237,25 @@ export default function Home() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center pt-8 pb-40 px-4">
+      <main className="flex-1 flex flex-col items-center pt-8 pb-28 px-4">
         {/* Logo */}
-        <div className="mb-4 rounded-lg dark:bg-white dark:px-[15px] dark:py-2">
+        <div className="mb-3 rounded-lg dark:bg-white dark:px-[15px] dark:py-2">
           <Image
             src="/logo-transparent.png"
             alt="Leaders of Tomorrow"
             width={500}
             height={200}
             priority
-            className="w-auto h-auto max-w-[80vw]"
+            className="w-auto h-auto max-w-[min(80vw,400px)]"
           />
         </div>
 
         {/* Subtitle */}
-        <h1 className="text-lg md:text-xl font-medium tracking-wide text-gray-600 dark:text-gray-400">
+        <h1 className="text-base md:text-lg font-medium tracking-wide text-gray-600 dark:text-gray-400">
           {activeBank === 'competition' ? 'IMPROMPTU QUESTION COMPETITION 2026' : 'IMPROMPTU QUESTION GENERATOR'}
         </h1>
         {activeBank === 'practice' && (
-          <p className="mt-2 mb-14 text-sm text-gray-400 dark:text-gray-500">
+          <p className="mt-1 mb-10 text-xs text-gray-400 dark:text-gray-500">
             Level {selectedLevel.replace('L', '')} — {levels.find(l => l.value === selectedLevel)?.name}
           </p>
         )}
@@ -267,7 +267,7 @@ export default function Home() {
             <div>
               <div className="flex">
                 <div className="flex-1 border-l-4 border-red-600 p-8 rounded-r-lg bg-gray-50 dark:bg-gray-800">
-                  <p className="text-2xl md:text-4xl font-medium leading-relaxed text-gray-900 dark:text-gray-100">
+                  <p className="text-2xl md:text-[clamp(1.5rem,3.5vw,2.75rem)] font-medium leading-relaxed text-gray-900 dark:text-gray-100">
                     {question.text}
                   </p>
                 </div>
@@ -313,7 +313,7 @@ export default function Home() {
                 {!timerRunning && !timerFinished && (
                   <button
                     onClick={startTimer}
-                    className="px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors"
+                    className="px-8 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white text-lg font-semibold transition-colors"
                   >
                     Start
                   </button>
@@ -321,7 +321,7 @@ export default function Home() {
                 {timerRunning && (
                   <button
                     onClick={endTimer}
-                    className="px-6 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+                    className="px-8 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-lg font-semibold transition-colors"
                   >
                     End
                   </button>
@@ -335,7 +335,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="border-l-4 p-8 rounded-r-lg bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-600">
-              <p className="text-2xl md:text-4xl leading-relaxed text-gray-300 dark:text-gray-500">
+              <p className="text-2xl md:text-[clamp(1.5rem,3.5vw,2.75rem)] leading-relaxed text-gray-300 dark:text-gray-500">
                 Your question will appear here...
               </p>
             </div>
@@ -344,18 +344,18 @@ export default function Home() {
       </main>
 
       {/* Fixed Bottom Controls */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 py-6 border-t bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800">
-        <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-4">
+      <div className="fixed bottom-0 left-0 right-0 px-4 py-3 border-t bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800">
+        <form onSubmit={handleSubmit} className="max-w-xl mx-auto space-y-2">
           {/* Level selector (practice) or Age Group selector (competition) */}
           {activeBank === 'practice' ? (
-            <div className="flex items-center justify-center gap-1">
-              <span className="text-sm mr-2 text-gray-500 dark:text-gray-400">Level</span>
+            <div className="flex items-center justify-center gap-0.5">
+              <span className="text-xs mr-1.5 text-gray-500 dark:text-gray-400">Level</span>
               {levels.map((level) => (
                 <button
                   key={level.value}
                   type="button"
                   onClick={() => handleLevelChange(level.value)}
-                  className={`w-8 h-8 rounded-full text-sm font-medium transition-all ${
+                  className={`w-7 h-7 rounded-full text-xs font-medium transition-all ${
                     selectedLevel === level.value
                       ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
                       : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
@@ -366,14 +366,14 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-sm mr-1 text-gray-500 dark:text-gray-400">Age Group</span>
+            <div className="flex items-center justify-center gap-1">
+              <span className="text-xs mr-1 text-gray-500 dark:text-gray-400">Age Group</span>
               {ageGroups.map((ag) => (
                 <button
                   key={ag.value}
                   type="button"
                   onClick={() => setSelectedAgeGroup(ag.value)}
-                  className={`px-4 h-9 rounded-full text-sm font-medium transition-all ${
+                  className={`px-3 h-7 rounded-full text-xs font-medium transition-all ${
                     selectedAgeGroup === ag.value
                       ? 'bg-red-600 text-white'
                       : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
@@ -386,7 +386,7 @@ export default function Home() {
           )}
 
           {/* Number Input */}
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <input
               type="number"
               inputMode="numeric"
@@ -412,12 +412,12 @@ export default function Home() {
               min="0"
               max={maxNumber}
               placeholder={`Lucky number (0-${maxNumber})`}
-              className="flex-1 px-6 py-5 rounded-lg border text-center text-2xl font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+              className="flex-1 px-4 py-3 rounded-lg border text-center text-lg font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
             />
             <button
               type="submit"
               disabled={loading}
-              className="px-12 py-5 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-semibold text-2xl transition-colors"
+              className="px-8 py-3 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-semibold text-lg transition-colors"
             >
               {loading ? '...' : 'Go'}
             </button>
