@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { SessionData, sessionOptions } from '@/lib/session';
 import { getRandomQuestion, recordQuestionShown, recordTemplateShown, recordNumberInput, recordUserActivity, Level } from '@/lib/db';
 import type { AgeGroup, QuestionBank } from '@/lib/types';
+import { rateLimit } from '@/lib/rate-limit';
 
 const validLevels: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6'];
 const validAgeGroups: AgeGroup[] = ['5-7', '8-11', '12+'];
@@ -22,6 +23,15 @@ function getClientIp(request: NextRequest): string {
 }
 
 export async function GET(request: NextRequest) {
+  const ip = getClientIp(request);
+  const { success } = rateLimit(`random:${ip}`, 60, 60_000);
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Try again later.' },
+      { status: 429 }
+    );
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const level = searchParams.get('level') as Level | null;
   const numberParam = searchParams.get('number');
@@ -77,21 +87,23 @@ export async function GET(request: NextRequest) {
     recordTemplateShown(question.templateId, question.variableUsed);
   }
 
-  // Record user activity if logged in
-  try {
-    const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    if (session.emailUserId) {
-      recordUserActivity(
-        session.emailUserId,
-        question.type,
-        question.type === 'simple' ? question.id : null,
-        question.templateId || null,
-        question.variableUsed || null,
-        level || 'L1'
-      );
+  // Record user activity if logged in (skip synthesized activity questions: no stable id to track)
+  if (question.type !== 'activity') {
+    try {
+      const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+      if (session.emailUserId) {
+        recordUserActivity(
+          session.emailUserId,
+          question.type,
+          question.type === 'simple' ? question.id : null,
+          question.templateId || null,
+          question.variableUsed || null,
+          level || 'L1'
+        );
+      }
+    } catch {
+      // Don't fail the request if activity tracking fails
     }
-  } catch {
-    // Don't fail the request if activity tracking fails
   }
 
   return NextResponse.json(question);

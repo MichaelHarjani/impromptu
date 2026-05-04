@@ -35,7 +35,7 @@ export interface L4Activity {
 }
 
 export interface GeneratedQuestion {
-  type: 'simple' | 'template';
+  type: 'simple' | 'template' | 'activity';
   id: number;
   text: string;
   templateId?: number;

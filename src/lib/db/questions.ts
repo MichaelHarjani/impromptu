@@ -1,5 +1,5 @@
 import { getDb } from './index';
-import type { Level, AgeGroup, QuestionBank, Question, QuestionWithFeedback, QuestionTemplate, GeneratedQuestion } from '../types';
+import type { Level, AgeGroup, QuestionBank, Question, QuestionWithFeedback, QuestionTemplate, L4Activity, GeneratedQuestion } from '../types';
 
 export function getRandomQuestion(level?: Level, ageGroup?: AgeGroup, bank: QuestionBank = 'practice'): GeneratedQuestion | null {
   const db = getDb();
@@ -7,8 +7,13 @@ export function getRandomQuestion(level?: Level, ageGroup?: AgeGroup, bank: Ques
   const lockSetting = db.prepare('SELECT value FROM settings WHERE key = ?').get('lock_duration_minutes') as { value: string } | undefined;
   const lockMinutes = parseInt(lockSetting?.value || '30', 10);
 
-  // For practice mode with L3/L4, use template questions
-  if (bank === 'practice' && (level === 'L3' || level === 'L4')) {
+  // L4 practice: synthesize a question from a random pair of activities.
+  if (bank === 'practice' && level === 'L4') {
+    return getRandomActivityQuestion(bank);
+  }
+
+  // For practice mode with L3, use template questions
+  if (bank === 'practice' && level === 'L3') {
     return getRandomTemplateQuestion(level, lockMinutes, bank);
   }
 
@@ -34,7 +39,7 @@ export function getRandomQuestion(level?: Level, ageGroup?: AgeGroup, bank: Ques
 
   if (!question) {
     const fallback = db.prepare(`
-      SELECT * FROM questions
+      SELECT q.* FROM questions q
       WHERE ${where}
       ORDER BY RANDOM()
       LIMIT 1
@@ -45,6 +50,28 @@ export function getRandomQuestion(level?: Level, ageGroup?: AgeGroup, bank: Ques
   }
 
   return { type: 'simple', id: question.id, text: question.text };
+}
+
+function getRandomActivityQuestion(bank: QuestionBank): GeneratedQuestion | null {
+  const db = getDb();
+  const activities = db.prepare('SELECT * FROM l4_activities WHERE bank = ?').all(bank) as L4Activity[];
+  if (activities.length < 2) return null;
+
+  const i = Math.floor(Math.random() * activities.length);
+  let j = Math.floor(Math.random() * (activities.length - 1));
+  if (j >= i) j += 1;
+  const a = activities[i].name;
+  const b = activities[j].name;
+
+  const shapes = [
+    `Why do you prefer ${a} over ${b}?`,
+    `Why do you prefer ${b} over ${a}?`,
+    `Why do you want to do both ${a} and ${b}?`,
+    `Why do you want to do neither ${a} or ${b}?`,
+  ];
+  const text = shapes[Math.floor(Math.random() * shapes.length)];
+
+  return { type: 'activity', id: 0, text };
 }
 
 function getRandomTemplateQuestion(level: 'L3' | 'L4', lockMinutes: number, bank: QuestionBank): GeneratedQuestion | null {
