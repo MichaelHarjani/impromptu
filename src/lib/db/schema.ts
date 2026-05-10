@@ -6,7 +6,7 @@ export function initializeDb(database: Database.Database) {
   database.exec(`
     CREATE TABLE IF NOT EXISTS questions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5', 'L6')),
+      level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7')),
       text TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -64,7 +64,7 @@ export function initializeDb(database: Database.Database) {
     CREATE TABLE IF NOT EXISTS number_inputs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       number INTEGER NOT NULL,
-      level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5', 'L6')),
+      level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7')),
       ip_address TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -153,14 +153,14 @@ export function initializeDb(database: Database.Database) {
     )
   `);
 
-  // Migration: expand level CHECK constraint to include L6
+  // Migration: expand level CHECK constraint to include L7 (and previously L6)
   // SQLite doesn't support ALTER CHECK, so we recreate the table
   const questionsSchema = (database.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='questions'").get() as { sql: string } | undefined);
-  if (questionsSchema && !questionsSchema.sql.includes("'L6'")) {
+  if (questionsSchema && !questionsSchema.sql.includes("'L7'")) {
     database.exec(`
       CREATE TABLE questions_v2 (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5', 'L6')),
+        level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7')),
         text TEXT NOT NULL,
         age_group TEXT NOT NULL DEFAULT '8-11',
         bank TEXT NOT NULL DEFAULT 'practice',
@@ -172,14 +172,14 @@ export function initializeDb(database: Database.Database) {
     database.exec('ALTER TABLE questions_v2 RENAME TO questions');
   }
 
-  // Migration: expand number_inputs level CHECK to include L6
+  // Migration: expand number_inputs level CHECK to include L7 (and previously L6)
   const numberInputsSchema = (database.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='number_inputs'").get() as { sql: string } | undefined);
-  if (numberInputsSchema && !numberInputsSchema.sql.includes("'L6'")) {
+  if (numberInputsSchema && !numberInputsSchema.sql.includes("'L7'")) {
     database.exec(`
       CREATE TABLE number_inputs_v2 (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         number INTEGER NOT NULL,
-        level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5', 'L6')),
+        level TEXT NOT NULL CHECK(level IN ('L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7')),
         ip_address TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -224,6 +224,7 @@ export function initializeDb(database: Database.Database) {
         L4: { use_default: true },
         L5: { use_default: true },
         L6: { use_default: false, yellow: 30, red: 45 },
+        L7: { use_default: true },
       },
     }),
   };
@@ -310,6 +311,12 @@ const sampleQuestions: Record<Level, string[]> = {
     'If you could change one thing about the world, what would it be?',
     'Describe a challenge you have overcome and what you learned from it.',
     'What does success mean to you?',
+  ],
+  L7: [
+    'What does Mother\'s Day mean to you?',
+    'Share a favorite Christmas memory.',
+    'What is your favorite Easter tradition?',
+    'Describe a special event that made you happy.',
   ],
 };
 

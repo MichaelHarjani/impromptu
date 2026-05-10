@@ -6,7 +6,7 @@ import { getRandomQuestion, recordQuestionShown, recordTemplateShown, recordNumb
 import type { AgeGroup, QuestionBank } from '@/lib/types';
 import { rateLimit } from '@/lib/rate-limit';
 
-const validLevels: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6'];
+const validLevels: Level[] = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'];
 const validAgeGroups: AgeGroup[] = ['5-7', '8-11', '12+'];
 const validBanks: QuestionBank[] = ['practice', 'competition'];
 

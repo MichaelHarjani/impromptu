@@ -13,6 +13,7 @@ const levels: { value: Level; label: string; name: string }[] = [
   { value: 'L4', label: '4', name: 'This or That' },
   { value: 'L5', label: '5', name: 'Think Critically' },
   { value: 'L6', label: '6', name: 'University Admission' },
+  { value: 'L7', label: '⭐', name: 'Special Events' },
 ];
 
 const ageGroups: { value: AgeGroup; label: string }[] = [
@@ -256,7 +257,9 @@ export default function Home() {
         </h1>
         {activeBank === 'practice' && (
           <p className="mt-1 mb-10 text-xs text-gray-400 dark:text-gray-500">
-            Level {selectedLevel.replace('L', '')} — {levels.find(l => l.value === selectedLevel)?.name}
+            {selectedLevel === 'L7'
+              ? levels.find(l => l.value === selectedLevel)?.name
+              : `Level ${selectedLevel.replace('L', '')} — ${levels.find(l => l.value === selectedLevel)?.name}`}
           </p>
         )}
         {activeBank !== 'practice' && <div className="mb-16" />}
@@ -355,7 +358,10 @@ export default function Home() {
                   key={level.value}
                   type="button"
                   onClick={() => handleLevelChange(level.value)}
-                  className={`w-7 h-7 rounded-full text-xs font-medium transition-all ${
+                  title={level.name}
+                  className={`w-7 h-7 rounded-full font-medium transition-all flex items-center justify-center ${
+                    level.value === 'L7' ? 'text-sm' : 'text-xs'
+                  } ${
                     selectedLevel === level.value
                       ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
                       : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'

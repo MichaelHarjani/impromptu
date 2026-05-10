@@ -1,4 +1,4 @@
-export type Level = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
+export type Level = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6' | 'L7';
 export type AgeGroup = '5-7' | '8-11' | '12+';
 export type QuestionBank = 'practice' | 'competition';
 

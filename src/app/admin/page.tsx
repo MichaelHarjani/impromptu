@@ -14,7 +14,7 @@ import SettingsTab from './components/SettingsTab';
 import UsersTab from './components/UsersTab';
 import LevelTimerSettings from './components/LevelTimerSettings';
 
-type LevelTab = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
+type LevelTab = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6' | 'L7';
 type UtilityTab = 'feedback' | 'users' | 'logs' | 'lucky-numbers' | 'settings';
 type Tab = LevelTab | UtilityTab;
 
@@ -25,6 +25,7 @@ const levelTabs: { value: LevelTab; label: string; description: string }[] = [
   { value: 'L4', label: 'Level 4', description: 'This or That' },
   { value: 'L5', label: 'Level 5', description: 'Think Critically' },
   { value: 'L6', label: 'Level 6', description: 'University Admission' },
+  { value: 'L7', label: '⭐', description: 'Special Events' },
 ];
 
 const utilityTabs: { value: UtilityTab; label: string }[] = [
@@ -127,7 +128,7 @@ export default function AdminDashboard() {
   const feedbackCount = questions.filter(q => q.thumbs_up > 0 || q.thumbs_down > 0).length;
 
   const isLevelTab = (tab: Tab): tab is LevelTab =>
-    ['L1', 'L2', 'L3', 'L4', 'L5', 'L6'].includes(tab);
+    ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'].includes(tab);
 
   if (!isLoggedIn) {
     return (
@@ -215,6 +216,7 @@ export default function AdminDashboard() {
         {activeTab === 'L4' && <CategoriesLevel bank={selectedBank} />}
         {activeTab === 'L5' && <SimpleQuestionsLevel level="L5" bank={selectedBank} />}
         {activeTab === 'L6' && <SimpleQuestionsLevel level="L6" bank={selectedBank} />}
+        {activeTab === 'L7' && <SimpleQuestionsLevel level="L7" bank={selectedBank} />}
 
         {/* Utility Content */}
         {activeTab === 'feedback' && (
