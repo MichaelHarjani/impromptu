@@ -214,6 +214,8 @@ export function initializeDb(database: Database.Database) {
     ip_whitelist: '[]',
     ip_whitelist_enabled: 'false',
     active_bank: 'practice',
+    l7_name: 'Special Events',
+    l7_label: '⭐',
     timer_settings: JSON.stringify({
       default_yellow: 60,
       default_red: 90,

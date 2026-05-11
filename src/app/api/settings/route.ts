@@ -20,6 +20,8 @@ export async function GET() {
   const ipWhitelist = getIpWhitelist();
   const ipWhitelistEnabled = isIpWhitelistEnabled();
   const timerSettings = getSetting('timer_settings');
+  const l7Name = getSetting('l7_name') || 'Special Events';
+  const l7Label = getSetting('l7_label') || '⭐';
 
   return NextResponse.json({
     lock_duration_minutes: parseInt(lockDuration, 10),
@@ -27,6 +29,8 @@ export async function GET() {
     ip_whitelist: ipWhitelist,
     ip_whitelist_enabled: ipWhitelistEnabled,
     timer_settings: timerSettings ? JSON.parse(timerSettings) : null,
+    l7_name: l7Name,
+    l7_label: l7Label,
   });
 }
 
@@ -105,6 +109,26 @@ export async function PUT(request: NextRequest) {
 
     if (body.timer_settings !== undefined) {
       setSetting('timer_settings', JSON.stringify(body.timer_settings));
+    }
+
+    if (body.l7_name !== undefined) {
+      if (typeof body.l7_name !== 'string' || body.l7_name.trim().length === 0 || body.l7_name.length > 60) {
+        return NextResponse.json(
+          { error: 'l7_name must be a non-empty string up to 60 characters' },
+          { status: 400 }
+        );
+      }
+      setSetting('l7_name', body.l7_name.trim());
+    }
+
+    if (body.l7_label !== undefined) {
+      if (typeof body.l7_label !== 'string' || body.l7_label.trim().length === 0 || body.l7_label.length > 8) {
+        return NextResponse.json(
+          { error: 'l7_label must be a non-empty string up to 8 characters' },
+          { status: 400 }
+        );
+      }
+      setSetting('l7_label', body.l7_label.trim());
     }
 
     return NextResponse.json({ success: true });

@@ -13,19 +13,19 @@ import LuckyNumbersTab from './components/LuckyNumbersTab';
 import SettingsTab from './components/SettingsTab';
 import UsersTab from './components/UsersTab';
 import LevelTimerSettings from './components/LevelTimerSettings';
+import L7CategorySettings from './components/L7CategorySettings';
 
 type LevelTab = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6' | 'L7';
 type UtilityTab = 'feedback' | 'users' | 'logs' | 'lucky-numbers' | 'settings';
 type Tab = LevelTab | UtilityTab;
 
-const levelTabs: { value: LevelTab; label: string; description: string }[] = [
+const baseLevelTabs: { value: LevelTab; label: string; description: string }[] = [
   { value: 'L1', label: 'Level 1', description: 'All About Me' },
   { value: 'L2', label: 'Level 2', description: 'Imagine That' },
   { value: 'L3', label: 'Level 3', description: 'Pick a Side' },
   { value: 'L4', label: 'Level 4', description: 'This or That' },
   { value: 'L5', label: 'Level 5', description: 'Think Critically' },
   { value: 'L6', label: 'Level 6', description: 'University Admission' },
-  { value: 'L7', label: '⭐', description: 'Special Events' },
 ];
 
 const utilityTabs: { value: UtilityTab; label: string }[] = [
@@ -46,9 +46,16 @@ export default function AdminDashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('L1');
   const [selectedBank, setSelectedBank] = useState<QuestionBank>('practice');
+  const [l7Name, setL7Name] = useState('Special Events');
+  const [l7Label, setL7Label] = useState('⭐');
 
   // For feedback tab - fetch all questions
   const [questions, setQuestions] = useState<QuestionWithFeedback[]>([]);
+
+  const levelTabs = [
+    ...baseLevelTabs,
+    { value: 'L7' as LevelTab, label: l7Label, description: l7Name },
+  ];
 
   useEffect(() => {
     let cancelled = false;
@@ -65,7 +72,11 @@ export default function AdminDashboard() {
         }
         if (!cancelled) setIsLoggedIn(true);
         const settingsData = await settingsRes.json();
-        if (!cancelled && settingsData.active_bank) setSelectedBank(settingsData.active_bank);
+        if (!cancelled) {
+          if (settingsData.active_bank) setSelectedBank(settingsData.active_bank);
+          if (settingsData.l7_name) setL7Name(settingsData.l7_name);
+          if (settingsData.l7_label) setL7Label(settingsData.l7_label);
+        }
       } catch {
         router.push('/access');
       }
@@ -210,6 +221,11 @@ export default function AdminDashboard() {
 
         {/* Level Timer + Content */}
         {isLevelTab(activeTab) && <LevelTimerSettings level={activeTab} />}
+        {activeTab === 'L7' && (
+          <L7CategorySettings
+            onSaved={(name, label) => { setL7Name(name); setL7Label(label); }}
+          />
+        )}
         {activeTab === 'L1' && <SimpleQuestionsLevel level="L1" bank={selectedBank} />}
         {activeTab === 'L2' && <SimpleQuestionsLevel level="L2" bank={selectedBank} />}
         {activeTab === 'L3' && <TemplatesLevel bank={selectedBank} />}

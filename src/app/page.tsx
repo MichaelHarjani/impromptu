@@ -6,14 +6,13 @@ import Image from 'next/image';
 import { useTheme } from '@/lib/theme-context';
 import type { Level, AgeGroup, QuestionBank, GeneratedQuestion } from '@/lib/types';
 
-const levels: { value: Level; label: string; name: string }[] = [
+const baseLevels: { value: Level; label: string; name: string }[] = [
   { value: 'L1', label: '1', name: 'All About Me' },
   { value: 'L2', label: '2', name: 'Imagine That' },
   { value: 'L3', label: '3', name: 'Pick a Side' },
   { value: 'L4', label: '4', name: 'This or That' },
   { value: 'L5', label: '5', name: 'Think Critically' },
   { value: 'L6', label: '6', name: 'University Admission' },
-  { value: 'L7', label: '⭐', name: 'Special Events' },
 ];
 
 const ageGroups: { value: AgeGroup; label: string }[] = [
@@ -51,6 +50,12 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [voted, setVoted] = useState<'up' | 'down' | null>(null);
   const [maxNumber, setMaxNumber] = useState(1000);
+  const [l7Name, setL7Name] = useState('Special Events');
+  const [l7Label, setL7Label] = useState('⭐');
+  const levels = [
+    ...baseLevels,
+    { value: 'L7' as Level, label: l7Label, name: l7Name },
+  ];
   const [timerRunning, setTimerRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [timerFinished, setTimerFinished] = useState(false);
@@ -102,6 +107,8 @@ export default function Home() {
         if (data.max_number) setMaxNumber(data.max_number);
         if (data.active_bank) setActiveBank(data.active_bank);
         if (data.timer_settings) setTimerSettings(data.timer_settings);
+        if (data.l7_name) setL7Name(data.l7_name);
+        if (data.l7_label) setL7Label(data.l7_label);
       })
       .catch(() => {});
   }, []);
